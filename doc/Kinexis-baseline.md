@@ -9,6 +9,8 @@ Use Windows x64, Visual Studio 2022 with C++ desktop tools and a Windows SDK,
 Git, and **CMake 3.31.6**. The dependency recipes predate CMake 4; pinning the
 tool avoids changing upstream dependency code simply to prepare a baseline.
 CI installs the pinned CMake package with Python pip.
+The build script initializes Visual Studio's x64 developer environment itself,
+so Windows SDK libraries are found from a normal PowerShell session too.
 
 ```powershell
 python -m pip install cmake==3.31.6
@@ -31,6 +33,10 @@ Keep dependency downloads enabled for a fresh build. Build directories are
 
 The fork-owned `Kinexis Windows baseline` workflow uses the same script. It is
 independent of Prusa's reusable workflows and needs no repository secrets.
+The application configuration is Release-only, matching the dependency bundle;
+requesting Debug as well would require a second OpenVDB/Boost dependency build.
+CI caches completed dependency bundles by compiler version and build inputs,
+before compiling the app, so later app failures do not discard that setup work.
 It must run successfully on the pushed revision before Phase 0 is complete.
 The inherited Windows/macOS/Flatpak automation references an inaccessible Prusa
 reusable-workflow repository. Those templates are manual-only, and the inherited
