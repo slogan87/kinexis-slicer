@@ -18,6 +18,83 @@ non-planar) and the S³-Slicer paper (support-reducing non-planar).
 
 ## 0. The core idea (read this first)
 
+### Execution status (2026-11-24)
+
+This is the authoritative migration plan; `ROADMAP.md` is the historical Rust
+prototype record. The existing fork is
+[slogan87/kinexis-slicer](https://github.com/slogan87/kinexis-slicer), with full
+PrusaSlicer history. Do not create another fork. Its inspected default-branch
+revision is `d9f1e73a32809fc21e481b8cfd8118ceedbe401e` (PrusaSlicer 2.9.6
+plus migration documents and branding). No Actions runs were returned when
+inspected. A workflow file alone is not a verified CI build.
+
+**Confirmed validation order:** software simulation first (the physical machine
+has not been built), then the Duet/RRF three-actuator tilting bed. Klipper is
+last priority; it is not the primary firmware target. Hardware acceptance stays
+open until the Duet machine exists and has been commissioned.
+
+The Rust prototype supplies algorithms and fixtures, not validated continuous
+5-axis motion. Its nozzle collision warning is approximate; the radius argument
+is currently unused. Reachability checks and negative-Z/non-finite detection
+do not prove collision freedom. Rust export currently writes detected dangerous
+moves with a warning, so that behavior must not become the fork's acceptance rule.
+
+Acceptance gates, in dependency order:
+
+- [x] Locate the existing fork and identify its baseline revision.
+- [ ] Phase 0: reproduce a Windows dependency build, app build, tests, and launch;
+      record compiler/CMake versions and the exact commit.
+- [ ] Phase 0: run fork-owned CI on a pushed revision and record a green run.
+- [x] Phase 1: select validation order: simulation, Duet/RRF, then Klipper.
+- [ ] Phase 1: document simulated and Duet axis names, signs, pivot, tool
+      length, firmware configuration, and travel/tilt limits. Simulator values
+      must be explicit fixtures, not assumed final hardware measurements.
+- [ ] Phase 1: prove disabled/zero-tilt output equivalence on fixed fixtures;
+      validate nonzero poses against independently calculated expected axes.
+- [ ] Phase 2: print one height-map test coupon with per-point Z/orientation,
+      bounded geometric error, deposition compensation, and safe travel moves.
+- [ ] Phase 3: validate collision/reachability across extrusion, travel, and
+      pose transitions. Reject invalid export until the user corrects the job.
+
+Do not expand the Rust planar slicer as part of this migration. Preserve its
+tests and fixtures as reference material and revalidate each port independently.
+
+### First deliverable: software simulation for Duet/RRF
+
+The first runnable motion target is a three-actuator-bed simulation, independent
+of a connected printer. Use a small fixed STL corpus (square/cube, overhang
+L-bracket, and the existing cylinder-head regression). Store explicit simulated
+actuator contact points, pivot, axis names, travel limits, and speed limits with
+the fixtures. These are test values until physical measurements are available.
+
+The simulation acceptance gate must check:
+
+1. Disabled and zero-tilt transforms preserve the baseline planar motion and
+   extrusion, with any permitted metadata differences explicitly excluded.
+2. Positive/negative pitch, roll, and combined poses match independently
+   calculated actuator heights and a forward/inverse pose round trip.
+3. Extrusion, travel, retract/lift, and pose-transition moves remain finite and
+   respect configured XYZ/actuator limits and motion rates. Reject bad output.
+4. The 3D preview agrees with reconstructed machine motion and exposes the
+   unvalidated collision assumptions; it must not label a path machine-safe
+   merely because its coordinates are finite and non-negative.
+5. RRF command dialect and actuator synchronization are checked against the
+   eventual firmware configuration before hardware use. Software success does
+   not close the commissioning or physical-print gates.
+
+### Engineering corrections to the initial proposal
+
+The transforms must cover travel moves, retractions, layer changes, wipe paths,
+and any arc output, as well as extrusion. Subdivide curved moves to a specified
+position/orientation tolerance; warping just segment endpoints is insufficient.
+
+`det(Dφ)` describes local volume change, but is not by itself a complete
+deposition rule. Derive extrusion from transformed segment length and deposited
+cross-section/layer spacing, and validate conservation on test coupons. A
+height-map shear has determinant one even when a surface path length changes.
+Do not silently clamp tilt after warping positions: any orientation adjustment
+must be checked again for geometry, clearance, and machine feasibility.
+
 PrusaSlicer's entire pipeline assumes **flat layers**: slice the mesh with
 horizontal planes, generate 2D toolpaths per layer, emit X/Y moves at a fixed Z.
 Fighting that assumption everywhere is how you drown.
@@ -90,8 +167,8 @@ Honest magnitude: this is a multi-month effort. Phasing keeps each step
 independently testable and always leaves you with something that runs.
 
 ### Phase 0 — Fork, build, hygiene (foundation)
-- Fork `prusa3d/PrusaSlicer` into a **new repo** (`kinexis-slicer`), keep full
-  git history, add `upstream` remote for periodic rebases.
+- Use the existing `slogan87/kinexis-slicer` fork of `prusa3d/PrusaSlicer`, keep
+  full git history, and add `upstream` for periodic rebases.
 - Get it building on your platform via Prusa's dep bundles / `build_linux.sh`
   (Boost, TBB, CGAL, Eigen, wxWidgets, OpenVDB, …). This alone is a real task.
 - CI that builds the fork. Brand as Kinexis (later; don't churn early).
@@ -100,16 +177,19 @@ independently testable and always leaves you with something that runs.
 
 ### Phase 1 — 3D + orientation output plumbing (de-risk the machine first)
 Before any non-planar math, prove you can drive the machine.
-- Extend `GCodeWriter` to emit **X Y Z A B** (or your rotary axis names) and add a
-  `GCodeConfig`-driven kinematic/post-transform hook.
-- Add a **machine-kinematics** module (port from Kinexis): tilting bed (3-point),
-  trunnion (rotary bed), tilting toolhead (with tool-length compensation). Given a
-  desired nozzle position + tilt, produce axis values; flag unreachable poses.
+- Extend `GCodeWriter` with per-point XYZ and a `GCodeConfig`-driven
+  kinematic/post-transform hook. First simulate the three-point bed's configured
+  linear actuator axes (e.g. U/V/W); A/B words alone do not drive that machine.
+- Add a **machine-kinematics** module, starting with the three-point tilting bed
+  from Kinexis. Given a desired nozzle position and bed pose, produce axis values
+  and reject unreachable poses. Trunnion and tilting-toolhead implementations
+  (including tool-length compensation) follow after the first target works.
 - Round-trip test: slice a normal flat part, run it through the new 3D/orientation
   path with **zero tilt**, confirm byte-for-byte-equivalent motion. This proves
   the plumbing without changing results.
-- Output target: Klipper 5-axis (study Open5x's kinematics), plus a generic
-  post-processor. Klipper is the pragmatic motion base.
+- Output targets, in order: a deterministic software simulation, Duet/RRF
+  three-actuator bed output, then Klipper. Use Open5x as a reference, but do
+  not make its firmware choice a prerequisite for Kinexis.
 
 ### Phase 2 — Deformation-based non-planar (Approach A, the big win)
 - Define the **deformation field** φ: start with a height-map warp
@@ -120,10 +200,11 @@ Before any non-planar math, prove you can drive the machine.
 - At **G-code export**, for each extrusion point `(x, y, print_z)`:
   1. `(X,Y,Z) = φ(x,y,print_z)` — the real curved position.
   2. Nozzle orientation = normal of the deformed layer surface at that point
-     (from ∇φ) → `(A,B)`; clamp to machine limits and branch-angle style rules.
-  3. **Flow compensation:** scale extrusion `E` by the local Jacobian
-     `det(∂φ)` so layer stretch/compression under the warp keeps consistent
-     deposition (critical for print quality — non-planar work lives or dies here).
+     (from ∇φ) → `(A,B)`; validate against machine limits. Any adjusted
+     orientation requires renewed feasibility and clearance checks.
+  3. **Flow compensation:** derive extrusion from transformed segment length,
+     deposited cross-section, and layer spacing. Use the Jacobian to analyze
+     the deformation, but do not use its determinant alone as the flow rule.
   4. Emit the 5-axis move.
 - Field authoring: auto-fit φ to reduce overhangs / follow a top surface
   (reuse Kinexis's overhang + top-surface analysis), plus manual control. Partition
@@ -180,15 +261,17 @@ Treat the Kinexis repo as the **reference design + test cases** for the port.
 - **Collision is genuinely hard** in continuous 5-axis; expect to iterate.
 - **Build complexity:** getting a PrusaSlicer fork building is itself a Phase-0
   project; don't underestimate it.
-- **Hardware/firmware loop:** you need a real 5-axis machine + Klipper kinematics
-  to validate; simulation only goes so far.
+- **Hardware/firmware loop:** simulation is the first gate. Physical print
+  validation must wait for the Duet/RRF machine to be built and commissioned;
+  Klipper is a later target, not a prerequisite.
 
 ## 5. Immediate next steps
-1. Fork PrusaSlicer, get it building locally + in CI (Phase 0).
+1. Use the existing Kinexis PrusaSlicer fork and get it building locally + in CI (Phase 0).
 2. Stand up the kinematics + 5-axis `GCodeWriter` and prove the zero-tilt
    round-trip (Phase 1) — this de-risks everything downstream.
 3. Prototype the simplest height-map warp end-to-end on one test part (Phase 2 MVP):
-   pre-deform → Prusa slice → warp toolpaths at export → Klipper 5-axis → print.
+   pre-deform → Prusa slice → warp toolpaths at export → software validation;
+   print on Duet/RRF once the machine is built and commissioned.
 4. Only then generalize the field, add collision, and tackle native curved slicing.
 
 ---

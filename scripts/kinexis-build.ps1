@@ -1,0 +1,62 @@
+param(
+    [ValidateSet('All', 'ConfigureDeps', 'Deps', 'Configure', 'Build', 'Test')]
+    [string]$Stage = 'All',
+    [string]$CMake = 'cmake',
+    [ValidateRange(1, 32)]
+    [int]$Jobs = 2
+)
+
+$ErrorActionPreference = 'Stop'
+$sourceRoot = Split-Path $PSScriptRoot -Parent
+$depsBuild = Join-Path $sourceRoot 'deps/build-kinexis'
+$appBuild = Join-Path $sourceRoot 'build/kinexis-baseline'
+$prefix = Join-Path $depsBuild 'destdir/usr/local'
+$ctest = Join-Path (Split-Path (Get-Command $CMake -ErrorAction Stop).Source -Parent) 'ctest.exe'
+
+function Invoke-Checked {
+    param([string]$Executable, [string[]]$Arguments)
+    # Some dependency projects add /MP without a limit. _CL_ is appended by
+    # MSVC, so cap compiler fan-out as well as the outer MSBuild job count.
+    $savedCompilerTail = $env:_CL_
+    try {
+        $env:_CL_ = "$savedCompilerTail /MP$Jobs".Trim()
+        & $Executable @Arguments
+        if ($LASTEXITCODE -ne 0) {
+            throw "Command failed ($LASTEXITCODE): $Executable $($Arguments -join ' ')"
+        }
+    } finally {
+        $env:_CL_ = $savedCompilerTail
+    }
+}
+
+$versionText = & $CMake --version
+if ($LASTEXITCODE -ne 0 -or $versionText[0] -notmatch '^cmake version 3\.31\.6$') {
+    throw 'Use CMake 3.31.6 for this baseline. CI installs cmake==3.31.6; pass -CMake with the executable path locally.'
+}
+
+if ($Stage -in 'All', 'ConfigureDeps') {
+    Invoke-Checked $CMake @('-S', (Join-Path $sourceRoot 'deps'), '-B', $depsBuild,
+        '-G', 'Visual Studio 17 2022', '-A', 'x64', '-DDEP_DEBUG=OFF', "-DDEP_MAX_THREADS=$Jobs")
+}
+if ($Stage -in 'All', 'Deps') {
+    Invoke-Checked $CMake @('--build', $depsBuild, '--config', 'Release', '--parallel', "$Jobs")
+}
+if ($Stage -in 'All', 'Configure') {
+    Invoke-Checked $CMake @('-S', $sourceRoot, '-B', $appBuild,
+        '-G', 'Visual Studio 17 2022', '-A', 'x64', "-DCMAKE_PREFIX_PATH=$prefix",
+        '-DSLIC3R_BUILD_TESTS=ON', '-DSLIC3R_GUI=ON')
+}
+if ($Stage -in 'All', 'Build') {
+    Invoke-Checked $CMake @('--build', $appBuild, '--config', 'Release', '--parallel', "$Jobs")
+}
+if ($Stage -in 'All', 'Test') {
+    # The dependency bundle includes runtime DLLs (e.g. GMP/MPFR).
+    $savedPath = $env:PATH
+    try {
+        $env:PATH = "$(Join-Path $prefix 'bin');$savedPath"
+        Invoke-Checked $ctest @('--test-dir', $appBuild, '-C', 'Release',
+            '--output-on-failure', '--no-tests=error', '--output-junit', (Join-Path $appBuild 'test-results.xml'))
+    } finally {
+        $env:PATH = $savedPath
+    }
+}
