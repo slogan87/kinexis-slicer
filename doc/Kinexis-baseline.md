@@ -17,7 +17,10 @@ python -m pip install cmake==3.31.6
 
 For a portable CMake installation, pass `-CMake C:/path/to/cmake.exe`.
 The script builds Release dependencies, configures the GUI and unit tests,
-builds the app, and runs CTest with failure output and JUnit results. Each
+builds the app, and runs CTest with failure output and JUnit results. The first
+baseline targets STL input and excludes optional STEP/OpenCascade support.
+Pass `-WithStep` consistently to every stage to include that CAD import stack.
+Eigen's own tests/documentation are disabled; slicer unit tests stay enabled. Each
 native command's exit code is checked. Individual stages can be resumed using
 `-Stage ConfigureDeps`, `Deps`, `Configure`, `Build`, or `Test`.
 The job limit also caps MSVC `/MP` fan-out through a temporary `_CL_` value;

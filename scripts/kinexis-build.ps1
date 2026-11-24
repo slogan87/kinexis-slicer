@@ -2,6 +2,7 @@ param(
     [ValidateSet('All', 'ConfigureDeps', 'Deps', 'Configure', 'Build', 'Test')]
     [string]$Stage = 'All',
     [string]$CMake = 'cmake',
+    [switch]$WithStep,
     [ValidateRange(1, 32)]
     [int]$Jobs = 2
 )
@@ -12,6 +13,8 @@ $depsBuild = Join-Path $sourceRoot 'deps/build-kinexis'
 $appBuild = Join-Path $sourceRoot 'build/kinexis-baseline'
 $prefix = Join-Path $depsBuild 'destdir/usr/local'
 $ctest = Join-Path (Split-Path (Get-Command $CMake -ErrorAction Stop).Source -Parent) 'ctest.exe'
+$stepOption = if ($WithStep) { 'ON' } else { 'OFF' }
+$dependencyExcludes = if ($WithStep) { '' } else { 'OCCT' }
 
 function Invoke-Checked {
     param([string]$Executable, [string[]]$Arguments)
@@ -36,7 +39,8 @@ if ($LASTEXITCODE -ne 0 -or $versionText[0] -notmatch '^cmake version 3\.31\.6$'
 
 if ($Stage -in 'All', 'ConfigureDeps') {
     Invoke-Checked $CMake @('-S', (Join-Path $sourceRoot 'deps'), '-B', $depsBuild,
-        '-G', 'Visual Studio 17 2022', '-A', 'x64', '-DDEP_DEBUG=OFF', "-DDEP_MAX_THREADS=$Jobs")
+        '-G', 'Visual Studio 17 2022', '-A', 'x64', '-DDEP_DEBUG=OFF', "-DDEP_MAX_THREADS=$Jobs",
+        "-DPrusaSlicer_deps_PACKAGE_EXCLUDES=$dependencyExcludes")
 }
 if ($Stage -in 'All', 'Deps') {
     Invoke-Checked $CMake @('--build', $depsBuild, '--config', 'Release', '--parallel', "$Jobs")
@@ -44,7 +48,7 @@ if ($Stage -in 'All', 'Deps') {
 if ($Stage -in 'All', 'Configure') {
     Invoke-Checked $CMake @('-S', $sourceRoot, '-B', $appBuild,
         '-G', 'Visual Studio 17 2022', '-A', 'x64', "-DCMAKE_PREFIX_PATH=$prefix",
-        '-DSLIC3R_BUILD_TESTS=ON', '-DSLIC3R_GUI=ON')
+        '-DSLIC3R_BUILD_TESTS=ON', '-DSLIC3R_GUI=ON', "-DSLIC3R_ENABLE_FORMAT_STEP=$stepOption")
 }
 if ($Stage -in 'All', 'Build') {
     Invoke-Checked $CMake @('--build', $appBuild, '--config', 'Release', '--parallel', "$Jobs")
