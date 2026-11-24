@@ -16,6 +16,13 @@ If `atlbase.h` is missing, add `Microsoft.VisualStudio.Component.VC.ATL` through
 Visual Studio Installer > Modify > Individual components. The script checks for
 it before compiling. Installing this component requires Windows administrator
 approval; it is not installed automatically by the build script.
+Alternatively, pass `-AtlRoot C:/path/to/atlmfc` with matching Microsoft ATL
+headers and x64 libraries from your Visual Studio toolset. That folder must
+contain `include/atlbase.h` and `lib/x64/atls.lib`. Include/library search paths
+are changed only for the invoked build commands and restored afterwards. Keep
+SDK files outside version control; the script does not download or redistribute
+them. This route supports workspace-local dependencies without changing the
+Visual Studio installation.
 
 ```powershell
 python -m pip install cmake==3.31.6
@@ -52,6 +59,30 @@ After build/tests pass, launch the generated GUI executable under
 `build/kinexis-baseline/src/Release`, load a known STL, slice, and export a
 normal planar job. Record the revision, tool versions, test results, executable
 path, and visual result. A successful configure is not a successful build.
+
+## Verification record (2026-11-24)
+
+Local configuration used CMake 3.31.6, Visual Studio 2022 17.14, MSVC
+14.44.35207, and Windows SDK 10.0.26100.0. The Release dependency bundle built
+successfully, and the complete application/test build returned exit code zero.
+The generated console executable started and exported
+`test/overhang_lbracket.stl` from the Rust reference repository as planar G-code
+with exit code zero. Its unsupported-bridge warning is expected for this fixture
+with default supports disabled. This is a startup/export smoke test, not a
+zero-tilt comparison or a physical-print validation.
+
+GUI launch was attempted with an isolated workspace data directory. Visual
+verification remains open: the Windows automation helper timed out on
+`list_windows`, including after a kernel reset. Do not mark the GUI gate passed
+from the CLI result.
+
+All **7 CTest suites passed** locally (143.34 seconds, zero failures). The
+fork-owned Windows workflow also passed on pushed commit
+`549e65fd5c26acdd34d5362b6cfa6edadcf12e60`:
+[run 45322490518](https://github.com/slogan87/kinexis-slicer/actions/runs/45322490518).
+The optional workspace-local `-AtlRoot` path was verified by the successful
+local application/test build and CTest run; that option was added after the
+referenced CI revision. GUI verification still keeps the full Phase 0 gate open.
 
 ## Next gate
 

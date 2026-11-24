@@ -2,6 +2,7 @@ param(
     [ValidateSet('All', 'ConfigureDeps', 'Deps', 'Configure', 'Build', 'Test')]
     [string]$Stage = 'All',
     [string]$CMake = 'cmake',
+    [string]$AtlRoot = '',
     [switch]$WithStep,
     [ValidateRange(1, 32)]
     [int]$Jobs = 2
@@ -16,20 +17,32 @@ $CMake = (Get-Command $CMake -ErrorAction Stop).Source
 $ctest = Join-Path (Split-Path $CMake -Parent) 'ctest.exe'
 $stepOption = if ($WithStep) { 'ON' } else { 'OFF' }
 $dependencyExcludes = if ($WithStep) { '' } else { 'OCCT' }
+$taskAtlInclude = $null
+$taskAtlLibrary = $null
 
 function Invoke-Checked {
     param([string]$Executable, [string[]]$Arguments)
     # Some dependency projects add /MP without a limit. _CL_ is appended by
     # MSVC, so cap compiler fan-out as well as the outer MSBuild job count.
     $savedCompilerTail = $env:_CL_
+    $savedTaskIncludePath = $env:IncludePath
+    $savedTaskLibraryPath = $env:LibraryPath
     try {
         $env:_CL_ = "$savedCompilerTail /MP$Jobs".Trim()
+        if ($taskAtlInclude) {
+            $baseIncludePath = if ($savedTaskIncludePath) { $savedTaskIncludePath } else { $env:INCLUDE }
+            $baseLibraryPath = if ($savedTaskLibraryPath) { $savedTaskLibraryPath } else { $env:LIB }
+            $env:IncludePath = "$taskAtlInclude;$baseIncludePath"
+            $env:LibraryPath = "$taskAtlLibrary;$baseLibraryPath"
+        }
         & $Executable @Arguments
         if ($LASTEXITCODE -ne 0) {
             throw "Command failed ($LASTEXITCODE): $Executable $($Arguments -join ' ')"
         }
     } finally {
         $env:_CL_ = $savedCompilerTail
+        $env:IncludePath = $savedTaskIncludePath
+        $env:LibraryPath = $savedTaskLibraryPath
     }
 }
 
@@ -47,8 +60,17 @@ if ($LASTEXITCODE -ne 0 -or -not $vsRoot) {
 }
 $compilerVersion = (Get-Content (Join-Path $vsRoot 'VC/Auxiliary/Build/Microsoft.VCToolsVersion.default.txt')).Trim()
 $atlHeader = Join-Path $vsRoot "VC/Tools/MSVC/$compilerVersion/atlmfc/include/atlbase.h"
+if ($AtlRoot) {
+    $resolvedAtlRoot = (Resolve-Path -LiteralPath $AtlRoot -ErrorAction Stop).Path
+    $taskAtlInclude = Join-Path $resolvedAtlRoot 'include'
+    $taskAtlLibrary = Join-Path $resolvedAtlRoot 'lib/x64'
+    $atlHeader = Join-Path $taskAtlInclude 'atlbase.h'
+    if (-not (Test-Path -LiteralPath (Join-Path $taskAtlLibrary 'atls.lib'))) {
+        throw 'The supplied ATL root must contain the matching x64 library at lib/x64/atls.lib.'
+    }
+}
 if ($Stage -ne 'Test' -and -not (Test-Path -LiteralPath $atlHeader)) {
-    throw 'Install C++ ATL for latest v143 build tools (x86 & x64) in Visual Studio Installer > Modify > Individual components (Microsoft.VisualStudio.Component.VC.ATL).'
+    throw 'Install C++ ATL for latest v143 build tools (x86 & x64) in Visual Studio Installer > Modify > Individual components (Microsoft.VisualStudio.Component.VC.ATL), or supply a matching workspace-local ATL folder with -AtlRoot.'
 }
 & (Join-Path $vsRoot 'Common7/Tools/Launch-VsDevShell.ps1') -VsInstallationPath $vsRoot -Arch amd64 -HostArch amd64 -SkipAutomaticLocation
 

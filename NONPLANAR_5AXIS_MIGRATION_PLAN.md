@@ -44,7 +44,7 @@ Acceptance gates, in dependency order:
 - [x] Locate the existing fork and identify its baseline revision.
 - [ ] Phase 0: reproduce a Windows dependency build, app build, tests, and launch;
       record compiler/CMake versions and the exact commit.
-- [ ] Phase 0: run fork-owned CI on a pushed revision and record a green run.
+- [x] Phase 0: run fork-owned CI on a pushed revision and record a green run.
 - [x] Phase 1: select validation order: simulation, Duet/RRF, then Klipper.
 - [ ] Phase 1: document simulated and Duet axis names, signs, pivot, tool
       length, firmware configuration, and travel/tilt limits. Simulator values
@@ -58,6 +58,18 @@ Acceptance gates, in dependency order:
 
 Do not expand the Rust planar slicer as part of this migration. Preserve its
 tests and fixtures as reference material and revalidate each port independently.
+
+**Verified foundation:** Windows dependency and complete app/test builds passed
+with CMake 3.31.6, VS 2022 17.14 / MSVC 14.44.35207, and SDK 10.0.26100.0.
+All 7 native CTest suites passed locally (143.34 seconds). The console app
+exported the L-bracket STL as planar G-code successfully. Fork-owned CI passed
+on `549e65fd5c26acdd34d5362b6cfa6edadcf12e60`
+([run 45322490518](https://github.com/slogan87/kinexis-slicer/actions/runs/45322490518)).
+The local optional ATL path was subsequently verified by the complete build and
+tests. GUI visual verification remains open: Windows automation timed out on
+window discovery after retries and a helper reset. No simulator, zero-tilt
+equivalence check, non-planar port, or physical validation is claimed by these
+baseline results. See the fork's `doc/Kinexis-baseline.md` for build instructions.
 
 ### First deliverable: software simulation for Duet/RRF
 
