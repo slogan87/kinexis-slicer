@@ -45,6 +45,11 @@ $vsRoot = & $vswhere -latest -version '[17.0,18.0)' -products '*' -requires Micr
 if ($LASTEXITCODE -ne 0 -or -not $vsRoot) {
     throw 'Visual Studio 2022 C++ tools were not found.'
 }
+$compilerVersion = (Get-Content (Join-Path $vsRoot 'VC/Auxiliary/Build/Microsoft.VCToolsVersion.default.txt')).Trim()
+$atlHeader = Join-Path $vsRoot "VC/Tools/MSVC/$compilerVersion/atlmfc/include/atlbase.h"
+if ($Stage -ne 'Test' -and -not (Test-Path -LiteralPath $atlHeader)) {
+    throw 'Install C++ ATL for latest v143 build tools (x86 & x64) in Visual Studio Installer > Modify > Individual components (Microsoft.VisualStudio.Component.VC.ATL).'
+}
 & (Join-Path $vsRoot 'Common7/Tools/Launch-VsDevShell.ps1') -VsInstallationPath $vsRoot -Arch amd64 -HostArch amd64 -SkipAutomaticLocation
 
 if ($Stage -in 'All', 'ConfigureDeps') {

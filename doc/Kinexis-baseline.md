@@ -5,12 +5,17 @@ PrusaSlicer 2.9.6. This branch prepares Phase 0; it adds no non-planar behavior.
 
 ## Build and verification
 
-Use Windows x64, Visual Studio 2022 with C++ desktop tools and a Windows SDK,
+Use Windows x64, Visual Studio 2022 with C++ desktop tools, **C++ ATL for latest
+v143 build tools (x86 & x64)**, and a Windows SDK,
 Git, and **CMake 3.31.6**. The dependency recipes predate CMake 4; pinning the
 tool avoids changing upstream dependency code simply to prepare a baseline.
 CI installs the pinned CMake package with Python pip.
 The build script initializes Visual Studio's x64 developer environment itself,
 so Windows SDK libraries are found from a normal PowerShell session too.
+If `atlbase.h` is missing, add `Microsoft.VisualStudio.Component.VC.ATL` through
+Visual Studio Installer > Modify > Individual components. The script checks for
+it before compiling. Installing this component requires Windows administrator
+approval; it is not installed automatically by the build script.
 
 ```powershell
 python -m pip install cmake==3.31.6
