@@ -2,8 +2,7 @@ name: Run static analysis
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 0 * * *"
+  # KINEXIS: the inherited external automation is unavailable; no scheduled runs.
 
 jobs:
   static_analysis_dev:

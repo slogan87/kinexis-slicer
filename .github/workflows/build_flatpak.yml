@@ -1,7 +1,7 @@
 name: Build flatpak
 
 on:
-  push:
+  # KINEXIS: keep the upstream template manual until a fork-owned Linux build exists.
   workflow_dispatch:
 
 jobs:

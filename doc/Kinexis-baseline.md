@@ -29,6 +29,10 @@ Keep dependency downloads enabled for a fresh build. Build directories are
 The fork-owned `Kinexis Windows baseline` workflow uses the same script. It is
 independent of Prusa's reusable workflows and needs no repository secrets.
 It must run successfully on the pushed revision before Phase 0 is complete.
+The inherited Windows/macOS/Flatpak automation references an inaccessible Prusa
+reusable-workflow repository. Those templates are manual-only, and the inherited
+analysis schedule is disabled. They are retained for reference; they are not
+working Kinexis CI. The fork-owned Windows baseline is the automatic build.
 
 After build/tests pass, launch the generated GUI executable under
 `build/kinexis-baseline/src/Release`, load a known STL, slice, and export a

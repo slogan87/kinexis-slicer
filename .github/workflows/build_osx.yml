@@ -1,7 +1,7 @@
 name: Build osx
 
 on:
-  push:
+  # KINEXIS: keep the upstream template manual until a fork-owned macOS build exists.
   workflow_dispatch:
 
 jobs:
