@@ -1,0 +1,9 @@
+pivot 0 0
+tilt_limit 15 15
+xyz_min -150 -150 0
+xyz_max 150 150 250
+xyz_speed 100 100 30
+extruder_speed 25
+actuator U -100 -100 1 100 50 150 10
+actuator V 100 -100 1 100 50 150 10
+actuator W 0 100 1 100 50 150 10

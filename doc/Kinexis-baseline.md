@@ -86,6 +86,18 @@ referenced CI revision. GUI verification still keeps the full Phase 0 gate open.
 
 ## Next gate
 
+Update (2026-11-26): the final foundation follow-up commit
+`de3458760f99f4c8a14d397f6dec4a51d418e3ac` passed
+[CI run 45332556022](https://github.com/slogan87/kinexis-slicer/actions/runs/45332556022).
+The GUI retry displayed the loaded L-bracket and configuration wizard, but
+input failed with `GetCursorPos failed: Access is denied. (0x80070005)`.
+Startup/model loading were observed; GUI slice/export remains unverified.
+
+The first standalone C++ simulation is in
+[`tools/kinexis_sim`](../tools/kinexis_sim/README.md). Its identity checks cover
+the simulator representation, not PrusaSlicer's G-code pipeline. Its ideal
+sliding-support fixture is not a physical machine profile.
+
 Validation order is confirmed: software simulation first, Duet/RRF when the
 three-actuator machine is built, then Klipper last. Record explicit simulator
 fixtures and later the physical machine's axis names/signs, pivot, tool length,

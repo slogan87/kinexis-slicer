@@ -1,0 +1,20 @@
+cmake_minimum_required(VERSION 3.20)
+project(KinexisSimulation LANGUAGES CXX)
+enable_testing()
+add_library(kinexis_bed bed.cpp)
+target_compile_features(kinexis_bed PUBLIC cxx_std_17)
+target_include_directories(kinexis_bed PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+add_executable(kinexis-sim main.cpp)
+target_link_libraries(kinexis-sim PRIVATE kinexis_bed)
+add_executable(kinexis-sim-tests tests.cpp)
+target_link_libraries(kinexis-sim-tests PRIVATE kinexis_bed)
+target_compile_definitions(kinexis-sim-tests PRIVATE FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
+add_test(NAME bed-kinematics COMMAND kinexis-sim-tests)
+add_test(NAME motion-fixture COMMAND kinexis-sim
+    ${CMAKE_CURRENT_SOURCE_DIR}/fixtures/virtual-bed.machine
+    ${CMAKE_CURRENT_SOURCE_DIR}/fixtures/motion.csv)
+find_package(Python3 COMPONENTS Interpreter)
+if(Python3_Interpreter_FOUND)
+    add_test(NAME cli-validation COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/check_cli.py $<TARGET_FILE:kinexis-sim>)
+endif()

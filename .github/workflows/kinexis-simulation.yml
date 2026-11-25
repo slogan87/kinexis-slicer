@@ -1,0 +1,30 @@
+name: Kinexis simulation
+on:
+  push:
+    branches: [master, 'codex/**']
+    paths: ['tools/kinexis_sim/**', '.github/workflows/kinexis-simulation.yml']
+  pull_request:
+    paths: ['tools/kinexis_sim/**', '.github/workflows/kinexis-simulation.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  simulation:
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, windows-2022]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: cmake -S tools/kinexis_sim -B build/kinexis-sim -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build build/kinexis-sim --config Release --parallel 2
+      - run: ctest --test-dir build/kinexis-sim -C Release --output-on-failure --no-tests=error --output-junit test-results.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: simulation-${{ matrix.os }}
+          path: build/kinexis-sim/test-results.xml

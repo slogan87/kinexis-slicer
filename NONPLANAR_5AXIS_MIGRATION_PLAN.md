@@ -71,6 +71,20 @@ window discovery after retries and a helper reset. No simulator, zero-tilt
 equivalence check, non-planar port, or physical validation is claimed by these
 baseline results. See the fork's `doc/Kinexis-baseline.md` for build instructions.
 
+**Simulation progress (2026-11-26):** the fork now contains a standalone C++17
+kinematics harness under `tools/kinexis_sim`, with an explicit virtual bed
+fixture, forward/inverse plane reconstruction, nozzle-tip rigid transforms,
+and limits/rate checks for extrusion and non-extruding moves. Disabled and
+zero-pose identity are tested within its motion representation. This does not
+yet establish slicer G-code equivalence. The support model assumes ideal
+vertical actuators with sliding contacts; the real Duet linkage and firmware
+configuration remain unmeasured. Collision checks, tool solids, 3D motion
+preview, and slicer integration are still open. The foundation follow-up CI
+passed on `de3458760f99f4c8a14d397f6dec4a51d418e3ac`
+([run 45332556022](https://github.com/slogan87/kinexis-slicer/actions/runs/45332556022)).
+GUI retry displayed the L-bracket but interaction failed with Windows access
+denied; GUI slice/export acceptance remains open.
+
 ### First deliverable: software simulation for Duet/RRF
 
 The first runnable motion target is a three-actuator-bed simulation, independent
