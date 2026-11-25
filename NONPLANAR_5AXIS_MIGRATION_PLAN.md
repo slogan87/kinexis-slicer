@@ -84,6 +84,11 @@ passed on `de3458760f99f4c8a14d397f6dec4a51d418e3ac`
 ([run 45332556022](https://github.com/slogan87/kinexis-slicer/actions/runs/45332556022)).
 GUI retry displayed the L-bracket but interaction failed with Windows access
 denied; GUI slice/export acceptance remains open.
+The simulation commit `4e4c81647f171575e42b306b583786ba72634c54` passed its
+Windows and Ubuntu CI jobs
+([run 45694082655](https://github.com/slogan87/kinexis-slicer/actions/runs/45694082655)).
+Locally, all 3 Windows CTest groups passed, including 225 C++ numerical and
+validation checks and the Python command-line rejection tests.
 
 ### First deliverable: software simulation for Duet/RRF
 

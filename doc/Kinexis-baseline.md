@@ -98,6 +98,12 @@ The first standalone C++ simulation is in
 the simulator representation, not PrusaSlicer's G-code pipeline. Its ideal
 sliding-support fixture is not a physical machine profile.
 
+Simulation commit `4e4c81647f171575e42b306b583786ba72634c54` passed
+[Windows and Ubuntu CI](https://github.com/slogan87/kinexis-slicer/actions/runs/45694082655).
+Its local Windows build passed all three CTest groups, including 225 C++ checks
+and the command-line rejection suite. The parent PrusaSlicer GUI pipeline was
+not changed by this standalone harness.
+
 Validation order is confirmed: software simulation first, Duet/RRF when the
 three-actuator machine is built, then Klipper last. Record explicit simulator
 fixtures and later the physical machine's axis names/signs, pivot, tool length,
