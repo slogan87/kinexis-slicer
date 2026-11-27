@@ -104,6 +104,14 @@ Its local Windows build passed all three CTest groups, including 225 C++ checks
 and the command-line rejection suite. The parent PrusaSlicer GUI pipeline was
 not changed by this standalone harness.
 
+Planar adapter update (2026-11-27): local verification now passes five CTest
+groups, including 246 C++ checks, modal G-code regression tests, and a fresh
+PrusaSlicer CLI export. The 10,009-move L-bracket export is byte-identical after
+both disabled and zero-tilt replay. Homing is counted but its path is explicitly
+excluded from validation. This tests the external adapter; it adds no nonzero
+tilt export to the PrusaSlicer GUI. The Windows baseline workflow now includes
+fresh-export replay after the native app/tests are built.
+
 Validation order is confirmed: software simulation first, Duet/RRF when the
 three-actuator machine is built, then Klipper last. Record explicit simulator
 fixtures and later the physical machine's axis names/signs, pivot, tool length,

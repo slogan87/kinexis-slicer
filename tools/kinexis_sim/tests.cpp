@@ -1,4 +1,5 @@
 #include "bed.hpp"
+#include "gcode.hpp"
 #include <cmath>
 #include <cstring>
 #include <functional>
@@ -131,6 +132,24 @@ int main() {
             altered=zero; altered[1].kind=kind; altered[1].tip[0]=151;
             rejects([&]{simulate(m,altered);});
         }
+        // Intermediate states use physical coordinates and unwrapped E, not
+        // the logical coordinates reset by G92. Expected distances are analytic.
+        auto replay=decode_gcode("M82\nG1 X10 E2 F600\nG92 X0 E0\nG1 X5 E3\n"
+                                 "M83\nG1 X8 E-1\nG4 P500\n",{0,0,0});
+        check(replay.moves==3,"wrong decoded move count");
+        check(replay.segments.size()==1,"unexpected segment boundary");
+        const auto& path=replay.segments[0];
+        check(path.size()==5,"lost move/dwell samples");
+        near(path[1].tip[0],10); near(path[1].extrusion,2); near(path[1].time,1);
+        near(path[2].tip[0],15); near(path[2].extrusion,5); near(path[2].time,1.5);
+        near(path[3].tip[0],18); near(path[3].extrusion,4); near(path[3].time,1.8);
+        near(path[4].tip[0],18); near(path[4].extrusion,4); near(path[4].time,2.3);
+        check(path[3].kind=="retract","combined wipe/retraction lost negative E");
+        verify_planar_replay(m,replay,true); verify_planar_replay(m,replay,false);
+        replay=decode_gcode("G1 X10 Y20 F600\nG28 X0\nG1 Y25\n",{0,0,0});
+        check(replay.segments.size()==2,"homing did not split replay");
+        near(replay.segments[1][0].tip[0],0); near(replay.segments[1][0].tip[1],20);
+        near(replay.segments[1][1].tip[1],25); near(replay.segments[1][1].time,0.5);
         std::cout<<checks<<" checks passed\n";
         return 0;
     } catch(const std::exception& e) { std::cerr<<"FAIL: "<<e.what()<<'\n'; return 1; }

@@ -2,7 +2,9 @@
 
 This is the first software-only kinematics harness, written in C++17 with no
 third-party dependencies. It is independent of the slicer GUI and does not
-change PrusaSlicer output. It emits CSV reports, **not printer G-code**.
+change PrusaSlicer output. The bed simulator emits CSV reports. The planar
+replay adapter can copy an original G-code file verbatim after its checks;
+neither tool generates nonzero-tilt printer G-code.
 The machine fixture is invented test geometry, not a commissioned Duet profile.
 
 ## Run
@@ -20,7 +22,8 @@ For Linux, the executable is `build/kinexis-sim/kinexis-sim` (no Release folder)
 Append `--disabled` to retain the original XYZ and E while holding all actuators
 at their neutral values. Zero pose also preserves XYZ bit-for-bit. These checks
 cover the simulator's motion representation; integration with real planar
-G-code and zero-tilt slicer equivalence are still acceptance gates.
+G-code integration is exercised separately below; the production slicer still
+has no non-planar export feature.
 
 Python 3 enables the additional CLI validation suite in CTest. CI provides it
 on Windows and Linux. To run the same numerical and CLI tests using Docker:
@@ -89,3 +92,67 @@ combined plane heights, shifted pivot and reversed sign, a known 30-degree
 rigid rotation, reconstruction, length preservation, exact disabled/zero-pose
 identity, every supported move kind, and rejection of degenerate geometry,
 non-finite values, invalid timing, travel, tilt, and speed violations.
+
+## Planar G-code replay and identity
+
+```powershell
+./build/kinexis-sim/Release/kinexis-gcode-check.exe tools/kinexis_sim/fixtures/planar-replay.machine tools/kinexis_sim/fixtures/prusa-lbracket.gcode --home 0 0 0 --identity-output checked-planar.gcode
+```
+
+The output path must not exist. Append `--disabled` for the disabled-transform
+path; the default is enabled with zero pose. All parsed motion is replayed
+through the bed simulator, with exact XYZ/E identity and neutral-actuator
+checks. Only after the entire replay passes can the original input bytes be
+copied, including comments, numeric spelling and line endings. This is the
+neutral-output adapter contract, not a test of a new nonzero-tilt G-code writer.
+The JSON report always declares `printer_safe: false`.
+
+`--home X Y Z` supplies an explicit **test fixture**, not homing instructions.
+Initial state is millimetres and absolute XYZ, with logical and physical XYZ
+at that home. E mode must be explicitly selected with M82/M83 before E moves,
+and selected again after G90/G91; this avoids guessing firmware-specific
+extruder-mode interactions. G92 changes logical coordinates without creating
+motion; E is unwrapped across resets and relative retractions. A homing command
+resets only the requested XYZ axes to the fixture and starts a new segment.
+Its physical homing path is excluded from validation and counted in the report.
+
+The intentionally restricted, uppercase G-code subset is:
+
+- G0/G1 with XYZ/E/F, G4 with P or S, G21, G28 (all axes or X0/Y0/Z0),
+  G90/G91, G92 with explicit XYZ/E, and M82/M83.
+- M104/M109/M140/M190 (S/R and optional T0), M106 (S/P), M107 (P),
+  and terminal M84 (optional S). Temperature, fan, motor-disable behaviour and
+  heater-wait durations are not simulated.
+
+Arcs, inch units, macros, additional axes/tools, coordinate systems, firmware
+retraction, line numbers/checksums, binary input and unknown commands are
+rejected, including in disabled mode. Numbers use ordinary decimal syntax;
+parenthesis comments and exponent notation are outside this subset. Each line
+needs an explicit command. No unsupported move is silently dropped.
+
+Timing uses constant requested F in mm/min, based on XYZ distance or pure-E
+distance. Acceleration, firmware speed caps, heater waits and homing duration
+are not modeled. Dwells insert stationary samples so they cannot mask the
+speed of the subsequent move. The separate `planar-replay.machine` is an
+invented, permissive envelope for the real planar fixture, not Duet hardware
+limits. It uses 0–250 mm XYZ, component speed bounds 500/500/200 mm/s and
+100 mm/s E; the actuator geometry and signs remain explicit in the fixture.
+
+The checked-in L-bracket G-code was generated from the adjacent STL using the
+built fork. Its provenance, SHA256 and 10,009-move expectation are recorded in
+`fixtures/prusa-lbracket.json`. Git preserves its original bytes. Tests verify
+intermediate modal states against analytic positions/E values, reject unsafe
+or unsupported inputs without creating an identity output, and preserve
+existing output files.
+
+To test a **fresh export** from a built slicer, reconfigure with:
+
+```powershell
+cmake -S tools/kinexis_sim -B build/kinexis-sim -DKINEXIS_SLICER_EXECUTABLE=C:/path/to/prusa-slicer-console.exe
+ctest --test-dir build/kinexis-sim -C Release --output-on-failure
+```
+
+This adds `fresh-planar-export`, which slices the STL with an isolated profile
+and checks the new export in both modes byte-for-byte. The native Windows CI
+does this after building PrusaSlicer; standalone Windows/Linux CI replays the
+checked-in real export without building the full GUI dependency stack.

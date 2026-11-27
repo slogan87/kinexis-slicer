@@ -64,6 +64,13 @@ jobs:
       - name: Run slicer tests
         shell: pwsh
         run: ./scripts/kinexis-build.ps1 -Stage Test -Jobs 2
+      - name: Configure planar replay integration
+        shell: pwsh
+        run: cmake -S tools/kinexis_sim -B build/kinexis-sim "-DKINEXIS_SLICER_EXECUTABLE=${{ github.workspace }}/build/kinexis-baseline/src/Release/prusa-slicer-console.exe"
+      - name: Build replay adapter
+        run: cmake --build build/kinexis-sim --config Release --parallel 2
+      - name: Verify fresh planar export identity
+        run: ctest --test-dir build/kinexis-sim -C Release --output-on-failure --no-tests=error --output-junit test-results.xml
       - name: Preserve test results and configure diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -72,6 +79,7 @@ jobs:
           if-no-files-found: ignore
           path: |
             build/kinexis-baseline/test-results.xml
+            build/kinexis-sim/test-results.xml
             build/kinexis-baseline/Testing/Temporary/LastTest.log
             build/kinexis-baseline/CMakeFiles/CMakeConfigureLog.yaml
             deps/build-kinexis/CMakeFiles/CMakeConfigureLog.yaml

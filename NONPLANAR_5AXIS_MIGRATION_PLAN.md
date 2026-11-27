@@ -90,6 +90,19 @@ Windows and Ubuntu CI jobs
 Locally, all 3 Windows CTest groups passed, including 225 C++ numerical and
 validation checks and the Python command-line rejection tests.
 
+**Planar replay progress (2026-11-27):** `kinexis-gcode-check` now decodes a
+restricted, explicit G-code subset into simulator motion, tracking XYZ/E modes,
+G92 offsets, retractions and dwells. The real L-bracket export replays 10,009
+moves. Disabled and zero-tilt adapter paths preserve the entire source file
+byte-for-byte after validation. All five local test groups passed, including
+246 C++ checks and a fresh export from the built PrusaSlicer CLI. Standalone CI
+uses the checked-in real export; native Windows CI also regenerates it.
+This closes the first adapter-level planar regression, not the production
+slicer's non-planar integration gate. Homing paths, heater waits, controller
+dynamics and collision geometry remain outside the replay model. Unsupported
+commands are rejected rather than skipped. Nonzero-tilt G-code generation is
+still unimplemented; the adapter report never marks output printer-safe.
+
 ### First deliverable: software simulation for Duet/RRF
 
 The first runnable motion target is a three-actuator-bed simulation, independent

@@ -1,0 +1,11 @@
+{
+  "generator": "PrusaSlicer 2.9.6+UNKNOWN, local fork Release build",
+  "generated_utc": "2026-11-27T06:30:17Z",
+  "source_model": "overhang_lbracket.stl, copied from the Rust reference repository test fixture",
+  "command": "prusa-slicer-console --datadir ISOLATED_PROFILE --export-gcode --output prusa-lbracket.gcode overhang_lbracket.stl",
+  "settings": "CLI defaults; supports disabled",
+  "gcode_sha256": "107acffff36e8737739198c23b5ca8567e305ca4c3080506970dbad8962d4cc4",
+  "source_bytes": 310141,
+  "replayed_moves": 10009,
+  "homing_commands_excluded_from_path_validation": 2
+}
