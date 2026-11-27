@@ -3,7 +3,13 @@ name: Kinexis Windows baseline
 on:
   push:
     branches: [master, 'codex/**']
+    paths-ignore:
+      - 'tools/kinexis_sim/**'
+      - '**/*.md'
   pull_request:
+    paths-ignore:
+      - 'tools/kinexis_sim/**'
+      - '**/*.md'
   workflow_dispatch:
 
 permissions:

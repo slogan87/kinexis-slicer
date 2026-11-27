@@ -36,7 +36,11 @@ CouponConfig read_coupon(const std::string& path) {
     expect("pose_step_deg"); in>>c.pose_step_deg;
     expect("volume_error_per_mm"); in>>c.volume_error_per_mm;
     expect("point_budget"); in>>c.point_budget;
-    need(!in.fail(),"invalid coupon number"); need(!(in>>key),"unexpected coupon data");
+    need(!in.fail(),"invalid coupon number");
+    if(in>>key) {
+        need(key=="substrate_thickness","unexpected coupon data"); in>>c.substrate_thickness;
+        need(!in.fail(),"invalid substrate thickness"); need(!(in>>key),"unexpected coupon data");
+    }
     return c;
 }
 CouponResult make_coupon(const Machine& machine,const CouponConfig& c) {
@@ -44,7 +48,8 @@ CouponResult make_coupon(const Machine& machine,const CouponConfig& c) {
     for(double n:{c.curvature_x,c.curvature_y,c.x_min,c.x_max,c.y_min,c.y_max,c.layer_height,
                   c.bead_width,c.filament_diameter,c.bed_lift,c.clearance_z,c.clearance_margin,
                   c.retract,c.print_speed,c.travel_speed,c.position_tolerance,c.alignment_tolerance_deg,
-                  c.pose_step_deg,c.volume_error_per_mm}) need(std::isfinite(n),"non-finite coupon parameter");
+                  c.pose_step_deg,c.volume_error_per_mm,c.substrate_thickness}) need(std::isfinite(n),"non-finite coupon parameter");
+    need(c.substrate_thickness>=0,"negative substrate thickness");
     need(c.curvature_x>=0 && c.curvature_y>=0,"coupon requires a convex quadratic height map");
     need(c.x_min<c.x_max && c.y_min<c.y_max,"invalid coupon bounds");
     need(c.rows>=2 && c.rows<=100 && c.layers>=1 && c.layers<=10,"invalid coupon row/layer count");
@@ -55,7 +60,7 @@ CouponResult make_coupon(const Machine& machine,const CouponConfig& c) {
     need(c.point_budget>=10 && c.point_budget<=1000000,"invalid point budget");
     double area=pi*square(c.filament_diameter)/4;
     need(std::isfinite(area) && area>0,"invalid filament area");
-    auto height=[&](double x,double y) {return c.curvature_x*x*x+c.curvature_y*y*y;};
+    auto height=[&](double x,double y) {return c.substrate_thickness+c.curvature_x*x*x+c.curvature_y*y*y;};
     auto orientation=[&](double x,double y) {
         return Pose{c.bed_lift,-std::atan(2*c.curvature_x*x)*180/pi,
                                -std::atan(2*c.curvature_y*y)*180/pi};

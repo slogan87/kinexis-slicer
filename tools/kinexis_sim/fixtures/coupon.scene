@@ -1,0 +1,9 @@
+bed_bounds -150 150 -150 150
+substrate_margin 2
+substrate_grid 40 24
+clearance_margin 0.02
+tip_radius 0.2
+capsule nozzle 0.2 0.6 2
+capsule hotend 2 4 12
+world_box gantry 35 -20 20 45 20 40
+bed_box clamp 13 -10 0 18 10 3

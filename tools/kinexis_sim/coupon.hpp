@@ -11,6 +11,7 @@ struct CouponConfig {
     double print_speed, travel_speed;
     double position_tolerance, alignment_tolerance_deg, pose_step_deg, volume_error_per_mm;
     int point_budget;
+    double substrate_thickness=0;
 };
 struct CouponResult {
     std::vector<Sample> samples;

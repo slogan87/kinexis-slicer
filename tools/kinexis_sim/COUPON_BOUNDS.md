@@ -7,7 +7,7 @@ printer. Floating-point comparisons in tests allow small numerical residuals.
 ## Geometry and orientation
 
 The bed-local surface is `f(x,y)=a*x²+b*y²`, with `a,b>=0`. Layers use vertical
-offset `k*h`. The surface normal is proportional to `(-2ax,-2by,1)`.
+offset `k*h`, plus the optional constant substrate thickness. The surface normal is proportional to `(-2ax,-2by,1)`.
 The bed slopes are `s=(-2ax,-2by)`, so the simulator's shortest rotation sends
 that surface normal to world +Z. Pitch/roll are plane-slope angles, not Euler
 angles. No orientation is clamped.

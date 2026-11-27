@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 project(KinexisSimulation LANGUAGES CXX)
 enable_testing()
-add_library(kinexis_bed bed.cpp gcode.cpp coupon.cpp)
+add_library(kinexis_bed bed.cpp gcode.cpp coupon.cpp scene.cpp)
 target_compile_features(kinexis_bed PUBLIC cxx_std_17)
 target_include_directories(kinexis_bed PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(kinexis-sim main.cpp)
@@ -10,6 +10,8 @@ add_executable(kinexis-gcode-check gcode_main.cpp)
 target_link_libraries(kinexis-gcode-check PRIVATE kinexis_bed)
 add_executable(kinexis-coupon coupon_main.cpp)
 target_link_libraries(kinexis-coupon PRIVATE kinexis_bed)
+add_executable(kinexis-scene-check scene_main.cpp)
+target_link_libraries(kinexis-scene-check PRIVATE kinexis_bed)
 add_executable(kinexis-sim-tests tests.cpp)
 target_link_libraries(kinexis-sim-tests PRIVATE kinexis_bed)
 target_compile_definitions(kinexis-sim-tests PRIVATE FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
@@ -26,6 +28,8 @@ if(Python3_Interpreter_FOUND)
         ${CMAKE_CURRENT_SOURCE_DIR}/check_gcode.py $<TARGET_FILE:kinexis-gcode-check>)
     add_test(NAME heightmap-coupon COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/check_coupon.py $<TARGET_FILE:kinexis-coupon>)
+    add_test(NAME collision-scene COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/check_scene.py $<TARGET_FILE:kinexis-scene-check>)
     if(KINEXIS_SLICER_EXECUTABLE)
         add_test(NAME fresh-planar-export COMMAND ${Python3_EXECUTABLE}
             ${CMAKE_CURRENT_SOURCE_DIR}/check_slicer.py

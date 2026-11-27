@@ -115,6 +115,17 @@ substrate/support or printable first-layer solution. Tool-body collisions,
 controller dynamics, general mesh warping and nonzero-tilt printer output
 remain unimplemented. Phase 2's physical coupon acceptance is still open.
 
+**Virtual scene progress (2026-11-27):** `kinexis-scene-check` now places the
+trajectory on a matched 2 mm substrate and checks finite tip/nozzle/hotend
+primitives against a bed plane, substrate/material envelope, bed-fixed boxes
+and world-fixed boxes across complete interpolated intervals. It rejects
+uncertain overlaps and deliberate collisions, including mid-segment obstacles.
+The default virtual scene passes 2,730 intervals and exports a watertight
+4,096-triangle substrate with a 0.00060625 mm surface bound. All seven local
+test groups pass. These fixtures are not measured hardware. Substrate
+manufacturing, tip contact with all prior printed material, complete printer
+geometry and physical commissioning remain open; `printer_safe` stays false.
+
 ### First deliverable: software simulation for Duet/RRF
 
 The first runnable motion target is a three-actuator-bed simulation, independent

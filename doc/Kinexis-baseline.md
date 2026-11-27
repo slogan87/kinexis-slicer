@@ -111,6 +111,10 @@ both disabled and zero-tilt replay. Homing is counted but its path is explicitly
 excluded from validation. This tests the external adapter; it adds no nonzero
 tilt export to the PrusaSlicer GUI. The Windows baseline workflow now includes
 fresh-export replay after the native app/tests are built.
+Simulation-only pushes use the dedicated simulation workflow. Neither these
+nor Markdown-only pushes restart an unchanged full PrusaSlicer build. Native changes still
+run the Windows baseline, and `workflow_dispatch` can explicitly run the full
+fresh-export integration on any development revision.
 
 The first software-only height-map trajectory is now `kinexis-coupon`, with
 its fixture and bound derivations under `tools/kinexis_sim`. All six local
@@ -119,6 +123,14 @@ planar export identity. The default run emits 2,730 samples with conservative
 position-error bound below 0.0047 mm. It is not a physical-print validation:
 support/substrate, tool-body collisions and nonzero-tilt firmware export remain
 open, and the result explicitly reports `printer_safe: false`.
+
+The next software increment adds `kinexis-scene-check`: a matched 2 mm virtual
+substrate, tip disk, nozzle/hotend capsules and fixed/moving box obstacles.
+All seven local test groups pass, including watertight mesh tests and deliberate
+mid-segment collisions. A default pass checks 2,730 intervals and can export
+4,096 substrate triangles. This checks configured primitives only; substrate
+manufacturing, chronological prior-track tip collisions and complete hardware
+geometry remain open. See `tools/kinexis_sim/SCENE_GEOMETRY.md`.
 
 Validation order is confirmed: software simulation first, Duet/RRF when the
 three-actuator machine is built, then Klipper last. Record explicit simulator

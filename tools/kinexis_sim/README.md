@@ -206,3 +206,32 @@ and reject impossible limits or exhausted subdivision budgets.
 `collision_checked`, `support_generated` and `printer_safe` remain false.
 General mesh warping, arbitrary height maps, collision solids, physical prints,
 and nonzero-tilt RRF/other firmware output remain separate gates.
+
+## Collision preflight with a matched virtual substrate
+
+```powershell
+./build/kinexis-sim/Release/kinexis-scene-check.exe tools/kinexis_sim/fixtures/virtual-bed.machine tools/kinexis_sim/fixtures/supported-coupon.cfg tools/kinexis_sim/fixtures/coupon.scene --substrate-stl substrate.stl
+```
+
+The output path must be new. The supported fixture offsets the previous
+trajectory onto a 2 mm matched substrate; preflight generates its watertight
+STL only after all configured scene checks pass. This closes the software
+fixture's missing-substrate geometry, not the physical printing/assembly gate.
+Manufacturing that substrate is not planned by this tool.
+
+The scene defines a finite-radius tip disk, nozzle/hotend capsules, a bed plane,
+bed-fixed clamp box and stationary gantry box. Conservative interval bounds
+cover the whole interpolated motion, including pose changes. An obstacle hit
+between otherwise clear endpoints is rejected. Unresolved bounds also reject;
+there is no fallback that labels uncertainty safe. See
+[SCENE_GEOMETRY.md](SCENE_GEOMETRY.md) for primitive definitions, bounds and
+limitations. Raw `kinexis-coupon` CSV generation does not perform this scene
+preflight; both tools remain diagnostic, with no nonzero firmware export.
+
+The default scene passes 2,730 intervals and produces 4,096 substrate triangles,
+with top-surface approximation bound 0.00060625 mm. Tests verify mesh topology,
+orientation, volume and surface error, deliberate mid-segment collisions,
+bed-fixed obstacles, tool/tip-radius changes, bed-plane contact and output
+preservation. The scene is deliberately incomplete: tip contact with prior
+printed tracks, complete real printer geometry and substrate manufacture remain
+unvalidated. A scene pass still reports `printer_safe: false`.
