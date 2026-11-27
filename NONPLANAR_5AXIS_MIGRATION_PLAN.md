@@ -139,6 +139,13 @@ The full native Windows build and fresh-export CI also passed on
 `443875bbb07a563b2a6b84e65f24bab15e5090d5`
 ([run 45960077844](https://github.com/slogan87/kinexis-slicer/actions/runs/45960077844)).
 
+A draft planar manufacturing preview for the matched substrate also exported
+and replayed 1,243 moves with exact disabled/zero-tilt identity. It uses isolated
+virtual CLI defaults and is not a commissioned job. The next gate is the fit
+between the manufactured planar stair-step top and the ideal curved first
+layer, followed by coordinate registration and a real printer profile. The
+ideal STL's mesh bound alone does not establish that manufacturing fit.
+
 ### First deliverable: software simulation for Duet/RRF
 
 The first runnable motion target is a three-actuator-bed simulation, independent

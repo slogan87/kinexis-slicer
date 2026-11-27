@@ -144,6 +144,12 @@ The full native Windows build, original CTest suites, and fresh-export replay
 also passed on `443875bbb07a563b2a6b84e65f24bab15e5090d5`:
 [run 45960077844](https://github.com/slogan87/kinexis-slicer/actions/runs/45960077844).
 
+A separate virtual planar substrate preview exported and replayed 1,243 moves
+with byte identity in both neutral modes. It does not close the manufacturing
+gate: coordinate registration and fit between the planar stepped top and curved
+first layer remain unvalidated. See
+[`Kinexis-substrate-preview.md`](Kinexis-substrate-preview.md).
+
 Validation order is confirmed: software simulation first, Duet/RRF when the
 three-actuator machine is built, then Klipper last. Record explicit simulator
 fixtures and later the physical machine's axis names/signs, pivot, tool length,
