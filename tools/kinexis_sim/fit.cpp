@@ -53,6 +53,9 @@ double top(double z,double h,double w,double distance) {
     return z-h/2+std::sqrt(std::max(0.0,h*h/4-side*side));
 }
 double lower_top(const Bead& b,Rect r) {
+    // The rounded-strip formula requires w>=h. Uncertainty outside that
+    // domain supplies no guaranteed lower surface, rather than a clamped bead.
+    if(b.low_width<b.height) return -inf;
     double dx=(b.b[0]-b.a[0])/b.length,dy=(b.b[1]-b.a[1])/b.length,max_distance=0;
     for(double x:{r.xmin,r.xmax}) for(double y:{r.ymin,r.ymax}) {
         double along=(x-b.a[0])*dx+(y-b.a[1])*dy;
@@ -116,7 +119,7 @@ FitResult check_substrate_fit(const CouponConfig& c,const CouponResult& motion,c
             double rounding=f.e_rounding*area/(length*z);
             need(std::isfinite(inferred) && std::abs(inferred-w)<=rounding+f.width_uncertainty+1e-6,
                  "extrusion dose disagrees with annotated width at line "+std::to_string(h.line));
-            double low=std::max(z,std::min(w-f.width_uncertainty,inferred-rounding-f.width_uncertainty));
+            double low=std::min(w-f.width_uncertainty,inferred-rounding-f.width_uncertainty);
             double high=std::max(w+f.width_uncertainty,inferred+rounding+f.width_uncertainty);
             need(std::isfinite(high) && high<=4,"bead uncertainty too large");
             Bead bead{a.tip,b.tip,z,low,high,length,{}};
@@ -157,6 +160,7 @@ FitResult check_substrate_fit(const CouponConfig& c,const CouponResult& motion,c
         spend();
         Rect rect{local.xmin+f.translation[0],local.xmax+f.translation[0],local.ymin+f.translation[1],local.ymax+f.translation[1]};
         double lower=-inf,upper=-inf;
+        bool possible_lower=false;
         std::vector<size_t> candidates;
         for(size_t id:parent) {
             spend(); const auto& bead=beads[id];
@@ -164,6 +168,7 @@ FitResult check_substrate_fit(const CouponConfig& c,const CouponResult& motion,c
             if(!overlap(bead.box,rect)) continue;
             double distance=minimum_distance(bead,rect); if(distance>bead.high_width/2) continue;
             candidates.push_back(id);
+            possible_lower=possible_lower || bead.low_width>=bead.height;
             upper=std::max(upper,top(bead.b[2],bead.height,bead.high_width,distance)+f.z_uncertainty);
             lower=std::max(lower,lower_top(bead,rect)-f.z_uncertainty);
         }
@@ -173,7 +178,7 @@ FitResult check_substrate_fit(const CouponConfig& c,const CouponResult& motion,c
         double low_gap=desired_min-upper,high_gap=desired_max-lower;
         bool pass=std::isfinite(lower) && low_gap>=f.minimum_gap && high_gap<=f.maximum_gap;
         bool fail=!std::isfinite(upper) || high_gap<f.minimum_gap || low_gap>f.maximum_gap;
-        if(!pass && !fail && depth<f.max_depth) {
+        if(!pass && !fail && possible_lower && depth<f.max_depth) {
             if(local.xmax-local.xmin>=local.ymax-local.ymin) {
                 double mid=(local.xmin+local.xmax)/2;
                 need(mid>local.xmin && mid<local.xmax,"fit subdivision precision exhausted");

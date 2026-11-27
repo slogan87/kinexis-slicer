@@ -36,6 +36,8 @@ the centerline its top is z for `d <= (w-h)/2`, otherwise
 configured width uncertainty and the E-rounding allowance; a separate Z
 uncertainty expands surface-height bounds. A dose inconsistent with the width
 annotation rejects instead of inventing a much wider bead.
+If the lower width bound crosses below h, the rounded-strip model supplies no
+guaranteed lower support. It is not clamped up to a larger circular bead.
 
 For a guaranteed lower surface bound, the entire cell must project inside a
 finite extrusion segment, and its maximum perpendicular distance must fit

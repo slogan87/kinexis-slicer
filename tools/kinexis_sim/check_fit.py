@@ -79,6 +79,14 @@ class FitTests(unittest.TestCase):
                 self.assertFalse(report["fit_passed"])
                 self.assertGreater(report["failed_cells"], 0)
 
+    def test_uncertain_width_is_not_clamped_to_a_larger_bead(self):
+        coupon = self.coupon.replace("bead_width 0.4", "bead_width 0.05")
+        result, _ = self.invoke(support_strips(width=0.1), coupon=coupon)
+        self.assertEqual(result.returncode, 1, result.stderr)
+        report = json.loads(result.stdout)
+        self.assertFalse(report["fit_passed"])
+        self.assertGreater(report["uncertain_cells"], 0)
+
     def test_missing_support_is_not_hidden_by_other_tracks(self):
         result, _ = self.invoke(support_strips(missing=True))
         self.assertEqual(result.returncode, 1, result.stderr)
