@@ -53,6 +53,7 @@ GcodeReplay decode_gcode(const std::string& bytes,Vec3 home) {
     Vec3 tip=home, logical=home, offset{};
     double e_logical=0, e_total=0, feed=0, time=0;
     bool absolute_xyz=true, absolute_e=true, e_mode_known=false;
+    std::string role,width,height;
     auto begin_segment=[&] {
         time=0;
         replay.segments.push_back({Sample{0,"travel",tip,e_total,{}}});
@@ -62,6 +63,16 @@ GcodeReplay decode_gcode(const std::string& bytes,Vec3 home) {
     while(std::getline(input,line)) {
         ++line_number;
         try {
+            // Metadata is recorded verbatim. Basic replay still ignores
+            // comments; only consumers of bead geometry validate these hints.
+            auto first=line.find_first_not_of(" \t");
+            if(first!=std::string::npos && line[first]==';') {
+                std::string comment=line.substr(first);
+                if(!comment.empty() && comment.back()=='\r') comment.pop_back();
+                if(comment.rfind(";TYPE:",0)==0) role=comment.substr(6);
+                else if(comment.rfind(";WIDTH:",0)==0) width=comment.substr(7);
+                else if(comment.rfind(";HEIGHT:",0)==0) height=comment.substr(8);
+            }
             line=line.substr(0,line.find(';'));
             if(line.find_first_not_of(" \t\r")==std::string::npos) continue;
             Command c=command(line);
@@ -96,6 +107,8 @@ GcodeReplay decode_gcode(const std::string& bytes,Vec3 home) {
                     std::string kind=de<0?"retract":de>0?"extrusion":
                         (next[0]==tip[0] && next[1]==tip[1] && next[2]>tip[2]?"lift":"travel");
                     replay.segments.back().push_back({time,kind,next,e_total,{}});
+                    if(de>0 && length>0) replay.extrusions.push_back({replay.segments.size()-1,
+                        replay.segments.back().size()-1,line_number,role,width,height});
                     ++replay.moves;
                 }
                 logical=next_logical; tip=next; e_logical=next_e;

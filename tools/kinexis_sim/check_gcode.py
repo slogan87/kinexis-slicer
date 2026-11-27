@@ -109,6 +109,12 @@ class ReplayTests(unittest.TestCase):
         self.reject(b"")
         self.reject(b"; no motion\r\n")
 
+    def test_geometry_hints_do_not_change_basic_replay(self):
+        source = b";WIDTH:not-a-number\n;HEIGHT:unknown\n;TYPE:Unrecognized\nM82\nG1 X1 E0.1 F60\n"
+        result, output = self.invoke(source)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(output, source)
+
 
 if __name__ == "__main__":
     unittest.main()

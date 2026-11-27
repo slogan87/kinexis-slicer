@@ -1,0 +1,18 @@
+[
+  {
+    "name": "curved-0.05mm",
+    "gcode": "substrate-curved-005.gcode",
+    "coupon": "supported-coupon.cfg",
+    "sha256": "49d480444831134bd405e283ea4757b40d7df0131fbb80c5bab5a6ba683faa48",
+    "fit_passed": false,
+    "profile": "PrusaSlicer 2.9.6 CLI, 100% rectilinear, classic perimeter, 0.05 mm layers, 0.1 mm first, center 100,100, 0.45 mm default widths; other CLI defaults"
+  },
+  {
+    "name": "flat-interface-0.05mm",
+    "gcode": "substrate-flat-005.gcode",
+    "coupon": "flat-interface-coupon.cfg",
+    "sha256": "2321820dd7bdee0f611252f9c4e26a1776c1ce3193e01d88e8ef693a82fc298b",
+    "fit_passed": true,
+    "profile": "PrusaSlicer 2.9.6 CLI, flat 2 mm substrate, 100% rectilinear, classic perimeter, rear seam, 0 deg fill, 0.05 mm layers, 0.1 mm first, 0.45 mm widths including top fill, center 100,100"
+  }
+]

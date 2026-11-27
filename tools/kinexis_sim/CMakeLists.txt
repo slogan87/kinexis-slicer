@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 project(KinexisSimulation LANGUAGES CXX)
 enable_testing()
-add_library(kinexis_bed bed.cpp gcode.cpp coupon.cpp material.cpp scene.cpp)
+add_library(kinexis_bed bed.cpp gcode.cpp coupon.cpp material.cpp scene.cpp fit.cpp)
 target_compile_features(kinexis_bed PUBLIC cxx_std_17)
 target_include_directories(kinexis_bed PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(kinexis-sim main.cpp)
@@ -12,6 +12,8 @@ add_executable(kinexis-coupon coupon_main.cpp)
 target_link_libraries(kinexis-coupon PRIVATE kinexis_bed)
 add_executable(kinexis-scene-check scene_main.cpp)
 target_link_libraries(kinexis-scene-check PRIVATE kinexis_bed)
+add_executable(kinexis-substrate-fit fit_main.cpp)
+target_link_libraries(kinexis-substrate-fit PRIVATE kinexis_bed)
 add_executable(kinexis-sim-tests tests.cpp)
 target_link_libraries(kinexis-sim-tests PRIVATE kinexis_bed)
 target_compile_definitions(kinexis-sim-tests PRIVATE FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
@@ -34,10 +36,16 @@ if(Python3_Interpreter_FOUND)
         ${CMAKE_CURRENT_SOURCE_DIR}/check_coupon.py $<TARGET_FILE:kinexis-coupon>)
     add_test(NAME collision-scene COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/check_scene.py $<TARGET_FILE:kinexis-scene-check>)
+    add_test(NAME substrate-surface-fit COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/check_fit.py $<TARGET_FILE:kinexis-substrate-fit>)
     if(KINEXIS_SLICER_EXECUTABLE)
         add_test(NAME fresh-planar-export COMMAND ${Python3_EXECUTABLE}
             ${CMAKE_CURRENT_SOURCE_DIR}/check_slicer.py
             ${KINEXIS_SLICER_EXECUTABLE} $<TARGET_FILE:kinexis-gcode-check>)
         set_tests_properties(fresh-planar-export PROPERTIES TIMEOUT 180)
+        add_test(NAME fresh-substrate-assessment COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/check_substrate_slicer.py ${KINEXIS_SLICER_EXECUTABLE}
+            $<TARGET_FILE:kinexis-scene-check> $<TARGET_FILE:kinexis-gcode-check> $<TARGET_FILE:kinexis-substrate-fit>)
+        set_tests_properties(fresh-substrate-assessment PROPERTIES TIMEOUT 240)
     endif()
 endif()

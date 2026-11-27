@@ -150,6 +150,13 @@ gate: coordinate registration and fit between the planar stepped top and curved
 first layer remain unvalidated. See
 [`Kinexis-substrate-preview.md`](Kinexis-substrate-preview.md).
 
+Surface-fit assessment is now implemented under `tools/kinexis_sim`. All ten
+local test groups pass, including fresh native substrate generation/replay.
+The curved manufacturing candidate is intentionally rejected/unproven; the
+flat-interface control passes the unchanged model limits. A green test result
+does not approve the complete curved job. The next gate is a checked
+planar-to-curved transition; see `tools/kinexis_sim/SURFACE_FIT.md`.
+
 Validation order is confirmed: software simulation first, Duet/RRF when the
 three-actuator machine is built, then Klipper last. Record explicit simulator
 fixtures and later the physical machine's axis names/signs, pivot, tool length,

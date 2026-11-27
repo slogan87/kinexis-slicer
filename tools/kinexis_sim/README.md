@@ -239,3 +239,19 @@ cases. A pass reports 10 tracks and 2,560 material cells for the default fixture
 Arbitrary infill joins, measured material/tool geometry, complete real printer
 geometry and substrate manufacture remain unvalidated. A scene pass still
 reports `printer_safe: false`.
+
+## Manufactured surface versus first-layer fit
+
+`kinexis-substrate-fit` reconstructs bounded planar rounded-strip bead surfaces
+from G-code metadata and E, then checks the first layer over a subdivided XY
+footprint. It distinguishes a modeled pass, failure and uncertainty. See
+[SURFACE_FIT.md](SURFACE_FIT.md) for commands, assumptions, profile results and
+the explicit frame/gap configuration.
+
+The original curved-base strategy is not approved: the fully filled 0.05 mm
+case fails the selected model gap limits, and a 0.025 mm refinement still has
+uncertain coverage. A flat-base/flat-first-layer control passes the same limits.
+This supports developing a planar first layer and gradual curvature transition;
+it does not validate a complete curved job or real hardware. Real sliced
+passing/rejected cases are included in regression tests, with optional fresh
+generation from the built PrusaSlicer CLI.

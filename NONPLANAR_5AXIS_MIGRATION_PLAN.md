@@ -146,6 +146,17 @@ between the manufactured planar stair-step top and the ideal curved first
 layer, followed by coordinate registration and a real printer profile. The
 ideal STL's mesh bound alone does not establish that manufacturing fit.
 
+**Manufactured-interface assessment (2026-11-28):** a bounded rounded-strip
+surface model now reconstructs planar G-code deposition and checks the entire
+conservative first-layer footprint using adaptive cell bounds. It rejects
+missing support and unresolved endpoint coverage. The direct curved-base
+0.05 mm plan fails the fixed virtual 0.15–0.25 mm gap limits; a 0.025 mm rear-seam
+experiment remains uncertain. A flat-base/flat-first-layer control passes at
+roughly 0.195–0.221 mm. All ten local test groups pass, including fresh native
+generation, replay and assessment of the passing/rejected cases. A gradual
+planar-to-curved transition is the next implementation gate; it is not yet
+implemented or validated. Physical registration and bead calibration remain open.
+
 ### First deliverable: software simulation for Duet/RRF
 
 The first runnable motion target is a three-actuator-bed simulation, independent
