@@ -129,7 +129,7 @@ SceneResult check_scene(const Machine& machine,const CouponConfig& c,const Coupo
          motion.frames.size()==motion.position_bounds.size(),"invalid coupon motion");
     need(s.substrate_margin>c.bead_width/2+motion.max_position_error_bound,
          "substrate margin does not cover the deposition footprint");
-    SceneResult result{make_substrate(c,s),0,motion.frames.size()};
+    SceneResult result{make_substrate(c,s),0,motion.frames.size(),{}};
     double dx=(c.x_max-c.x_min+2*s.substrate_margin)/s.grid_x;
     double dy=(c.y_max-c.y_min+2*s.substrate_margin)/s.grid_y;
     result.substrate_error_bound=(c.curvature_x*dx*dx+c.curvature_y*dy*dy)/4;
@@ -196,6 +196,7 @@ SceneResult check_scene(const Machine& machine,const CouponConfig& c,const Coupo
         check("tip_disk",s.tip_radius,0,0,true);
         for(const auto& capsule:s.capsules) check(capsule.name,capsule.radius,capsule.bottom,capsule.top,false);
     }
+    result.material=check_material(c,motion,s.tip_radius,s.clearance_margin);
     return result;
 }
 std::string substrate_stl(const Mesh& mesh) {

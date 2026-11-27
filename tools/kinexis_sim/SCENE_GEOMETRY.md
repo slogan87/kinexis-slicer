@@ -67,8 +67,10 @@ height for the convex quadratic. No tool sphere can reach that surface when
 the box's lower Z exceeds it. Capsule bodies are also checked against an
 overestimate of the complete rectangular-bead coupon envelope, including future
 layers, bead-width/slope allowance and trajectory error. The tip disk is checked
-against the substrate and fixtures, **not all prior printed tracks**, because
-deposition contact needs a separate chronological material model.
+against the substrate and fixtures, then against chronological bounded bead
+cells. [MATERIAL_MODEL.md](MATERIAL_MODEL.md) defines its narrow fresh-track and
+lift-off contact exceptions. Arbitrary infill joins and actual bead physics
+remain outside that model.
 
 Overlapping bounds are rejected as unresolved possible collisions; geometry is
 never silently clamped and no endpoint-only fallback is used. These conservative
@@ -81,9 +83,10 @@ All scene checks complete before any STL is created. Existing output files
 are preserved. A failed or indeterminate check exits nonzero and emits no
 success report or new geometry file. The result distinguishes
 `scene_collision_checked` and `substrate_geometry_generated` from
-`substrate_manufacturing_planned`, `tip_vs_prior_tracks_checked`, and
-`printer_safe`; the latter three remain false.
+`substrate_manufacturing_planned` and `printer_safe`, which remain false.
+`tip_vs_prior_tracks_checked` is true only after the chronological coupon
+material check also passes.
 
 Arbitrary printer meshes, real tool geometry, linkage/gantry dynamics,
-chronological deposited-material tip checks, homing, substrate manufacture,
+general deposited-material contacts, homing, substrate manufacture,
 acceleration, firmware synchronization and physical commissioning remain open.

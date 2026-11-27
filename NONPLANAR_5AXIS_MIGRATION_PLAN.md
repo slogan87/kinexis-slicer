@@ -126,6 +126,19 @@ test groups pass. These fixtures are not measured hardware. Substrate
 manufacturing, tip contact with all prior printed material, complete printer
 geometry and physical commissioning remain open; `printer_safe` stays false.
 
+**Chronological material progress (2026-11-27):** scene preflight now checks
+the tip disk against deposited bead cells in time order, with conservative
+continuous interval bounds. The default coupon has 10 tracks and 2,560 cells.
+Only the active monotone straight track and stationary/vertical lift-off from
+its fresh endpoint permit contact. Unrelated crossings, low lateral dragging,
+low pose changes, reversals, excess priming and unrecovered extrusion reject.
+All eight local test groups pass. This closes the first sparse-coupon
+prior-track regression; arbitrary joins, physical bead behaviour, substrate
+manufacturing and nonzero-tilt firmware export remain open.
+The full native Windows build and fresh-export CI also passed on
+`443875bbb07a563b2a6b84e65f24bab15e5090d5`
+([run 45960077844](https://github.com/slogan87/kinexis-slicer/actions/runs/45960077844)).
+
 ### First deliverable: software simulation for Duet/RRF
 
 The first runnable motion target is a three-actuator-bed simulation, independent

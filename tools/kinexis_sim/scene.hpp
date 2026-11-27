@@ -1,5 +1,6 @@
 #pragma once
 #include "coupon.hpp"
+#include "material.hpp"
 
 namespace kinexis {
 struct Box {std::string name; Vec3 minimum,maximum;};
@@ -16,6 +17,7 @@ struct SceneResult {
     Mesh substrate;
     double substrate_error_bound;
     size_t intervals_checked;
+    MaterialResult material;
 };
 Scene read_scene(const std::string& path);
 SceneResult check_scene(const Machine& machine,const CouponConfig& coupon,

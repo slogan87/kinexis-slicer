@@ -232,6 +232,10 @@ The default scene passes 2,730 intervals and produces 4,096 substrate triangles,
 with top-surface approximation bound 0.00060625 mm. Tests verify mesh topology,
 orientation, volume and surface error, deliberate mid-segment collisions,
 bed-fixed obstacles, tool/tip-radius changes, bed-plane contact and output
-preservation. The scene is deliberately incomplete: tip contact with prior
-printed tracks, complete real printer geometry and substrate manufacture remain
-unvalidated. A scene pass still reports `printer_safe: false`.
+preservation. The scene now also checks chronological tip contact with bounded
+bead cells for the sparse coupon. See [MATERIAL_MODEL.md](MATERIAL_MODEL.md)
+for the current-track/lift-off exceptions, retraction ledger and rejection
+cases. A pass reports 10 tracks and 2,560 material cells for the default fixture.
+Arbitrary infill joins, measured material/tool geometry, complete real printer
+geometry and substrate manufacture remain unvalidated. A scene pass still
+reports `printer_safe: false`.

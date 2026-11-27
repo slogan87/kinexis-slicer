@@ -50,7 +50,10 @@ class SceneTests(unittest.TestCase):
         self.assertTrue(report["scene_collision_checked"])
         self.assertTrue(report["substrate_geometry_generated"])
         self.assertFalse(report["substrate_manufacturing_planned"])
-        self.assertFalse(report["tip_vs_prior_tracks_checked"])
+        self.assertTrue(report["tip_vs_prior_tracks_checked"])
+        self.assertEqual(report["material_tracks"], 10)
+        self.assertGreater(report["material_cells"], 1000)
+        self.assertGreater(report["permitted_contact_pairs"], 0)
         self.assertFalse(report["printer_safe"])
         points = [tuple(map(float, line.split()[1:])) for line in mesh.splitlines() if line.strip().startswith("vertex ")]
         self.assertEqual(len(points) // 3, report["substrate_triangles"])
@@ -122,6 +125,11 @@ class SceneTests(unittest.TestCase):
         result, mesh = self.invoke(existing=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(mesh, "keep this")
+
+    def test_dense_same_layer_contacts_are_not_blanket_exempted(self):
+        # The sparse diagnostic contact policy does not authorize joining
+        # adjacent overlapping tracks. This needs a future infill/join model.
+        self.reject(coupon=self.coupon.replace("rows 5", "rows 50"), message="prior material")
 
 
 if __name__ == "__main__":

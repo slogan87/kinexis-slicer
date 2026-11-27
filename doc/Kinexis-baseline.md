@@ -132,6 +132,18 @@ mid-segment collisions. A default pass checks 2,730 intervals and can export
 manufacturing, chronological prior-track tip collisions and complete hardware
 geometry remain open. See `tools/kinexis_sim/SCENE_GEOMETRY.md`.
 
+Chronological tip/material preflight now passes the sparse supported coupon
+with 10 tracks and 2,560 bounded bead cells. All eight local test groups pass,
+including before/after material crossings and contact/retraction regressions.
+`tip_vs_prior_tracks_checked` is now true for this bounded coupon model;
+`printer_safe` remains false. Contact rules and limitations are documented in
+`tools/kinexis_sim/MATERIAL_MODEL.md`; general joins and physical calibration
+remain separate gates.
+
+The full native Windows build, original CTest suites, and fresh-export replay
+also passed on `443875bbb07a563b2a6b84e65f24bab15e5090d5`:
+[run 45960077844](https://github.com/slogan87/kinexis-slicer/actions/runs/45960077844).
+
 Validation order is confirmed: software simulation first, Duet/RRF when the
 three-actuator machine is built, then Klipper last. Record explicit simulator
 fixtures and later the physical machine's axis names/signs, pivot, tool length,

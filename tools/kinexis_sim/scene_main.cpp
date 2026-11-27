@@ -23,7 +23,12 @@ int main(int argc,char** argv) {
             <<",\"substrate_triangles\":"<<checked.substrate.triangles.size()
             <<",\"substrate_error_bound_mm\":"<<checked.substrate_error_bound
             <<",\"scene_collision_checked\":true,\"substrate_geometry_generated\":true"
-            <<",\"substrate_manufacturing_planned\":false,\"tip_vs_prior_tracks_checked\":false"
+            <<",\"substrate_manufacturing_planned\":false,\"tip_vs_prior_tracks_checked\":true"
+            <<",\"material_tracks\":"<<checked.material.tracks
+            <<",\"material_cells\":"<<checked.material.deposited_cells
+            <<",\"material_candidate_pairs\":"<<checked.material.candidate_pairs
+            <<",\"permitted_contact_pairs\":"<<checked.material.permitted_contact_pairs
+            <<",\"material_model\":\"bounded_tangent_beads\""
             <<",\"printer_safe\":false}\n";
         return 0;
     } catch(const std::exception& e) {std::cerr<<"Scene rejected: "<<e.what()<<'\n'; return 1;}
