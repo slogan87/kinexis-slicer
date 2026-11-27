@@ -112,6 +112,14 @@ excluded from validation. This tests the external adapter; it adds no nonzero
 tilt export to the PrusaSlicer GUI. The Windows baseline workflow now includes
 fresh-export replay after the native app/tests are built.
 
+The first software-only height-map trajectory is now `kinexis-coupon`, with
+its fixture and bound derivations under `tools/kinexis_sim`. All six local
+test groups pass, including independent interpolation/volume tests and fresh
+planar export identity. The default run emits 2,730 samples with conservative
+position-error bound below 0.0047 mm. It is not a physical-print validation:
+support/substrate, tool-body collisions and nonzero-tilt firmware export remain
+open, and the result explicitly reports `printer_safe: false`.
+
 Validation order is confirmed: software simulation first, Duet/RRF when the
 three-actuator machine is built, then Klipper last. Record explicit simulator
 fixtures and later the physical machine's axis names/signs, pivot, tool length,

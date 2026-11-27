@@ -156,3 +156,53 @@ This adds `fresh-planar-export`, which slices the STL with an isolated profile
 and checks the new export in both modes byte-for-byte. The native Windows CI
 does this after building PrusaSlicer; standalone Windows/Linux CI replays the
 checked-in real export without building the full GUI dependency stack.
+
+## Software-only height-map coupon
+
+```powershell
+./build/kinexis-sim/Release/kinexis-coupon.exe tools/kinexis_sim/fixtures/virtual-bed.machine tools/kinexis_sim/fixtures/heightmap-coupon.cfg --csv coupon.csv
+```
+
+This generates **simulation reports only**, never firmware commands. The CSV
+path must be new. It contains bed-local XYZ, E, pose, transformed world XYZ,
+declared actuator coordinates (`axis_U` etc.), and the incoming segment's
+position-error bound. JSON on stdout summarizes volume/error/clearance bounds.
+Configuration, subdivision or limit failures produce no report or CSV.
+
+The default fixture is two sparse raster layers (five tracks per layer) over
+`z=0.005*x²+0.0025*y²`, for X ±10 and Y ±4 mm, with 0.2 mm vertical layer
+spacing. It is a diagnostic trajectory, not a filled or supported solid. No
+substrate, support material, substrate-conforming first layer, or printable
+base is generated. It must not be sent to a printer.
+
+Bed tilt follows the **negative** surface gradient to align the local surface
+normal with the fixed vertical nozzle. A virtual 5 mm bed lift keeps world Z
+in range. Between tracks the extruder retracts, the tip lifts to bed-local
+Z=20 mm, travels at clearance while updating the bed pose, descends, and
+recovers the retraction. Initial/final bed orientation changes occur at the
+same clearance plane; the final position is neutral and retracted.
+
+The generator adaptively subdivides with conservative chord-error bounds for
+linear world-XYZ/actuator interpolation, not just endpoint checks. It separately
+bounds surface-normal alignment, vertical point-clearance on cleared travel,
+and midpoint volume-integration error. Durations are lengthened as needed for
+configured XYZ, actuator and E speed limits. There is no acceleration/jerk or
+tool-body collision model.
+
+Extrusion uses a declared local-tangent rectangular-bead model: surface width
+times vertical layer spacing projected onto the surface normal, integrated
+along the bed-local curved path. This is an approximation to finite physical
+layer spacing, not validated bead physics. It avoids counting bed motion as
+deposition length. See [COUPON_BOUNDS.md](COUPON_BOUNDS.md) for assumptions and
+the geometry, clearance and volume-bound derivations.
+
+The default run emits 2,730 samples, approximately 15.9984 mm³ of deposition,
+with a maximum conservative position-error bound below 0.0047 mm (target
+0.01 mm). Tests independently reconstruct interpolated axis motion, check
+interior path errors/normal alignment/clearance, compare volume with a separate
+high-resolution integral, verify the flat-surface limit and retraction balance,
+and reject impossible limits or exhausted subdivision budgets.
+
+`collision_checked`, `support_generated` and `printer_safe` remain false.
+General mesh warping, arbitrary height maps, collision solids, physical prints,
+and nonzero-tilt RRF/other firmware output remain separate gates.

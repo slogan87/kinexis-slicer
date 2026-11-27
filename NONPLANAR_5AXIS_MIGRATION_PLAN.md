@@ -103,6 +103,18 @@ dynamics and collision geometry remain outside the replay model. Unsupported
 commands are rejected rather than skipped. Nonzero-tilt G-code generation is
 still unimplemented; the adapter report never marks output printer-safe.
 
+**Height-map trajectory progress (2026-11-27):** the standalone
+`kinexis-coupon` generator now produces a two-layer quadratic-surface raster
+with per-point Z and bed orientation. Its default software fixture has 2,730
+samples. Geometry is subdivided using conservative bounds for linear machine
+axis interpolation; local-tangent deposition, normal alignment, point travel
+clearance and actuator/XYZ/E speed limits are checked. All six local test
+groups passed, including independent reconstruction of interior motion and a
+separate deposition integral. This is a sparse diagnostic trajectory with no
+substrate/support or printable first-layer solution. Tool-body collisions,
+controller dynamics, general mesh warping and nonzero-tilt printer output
+remain unimplemented. Phase 2's physical coupon acceptance is still open.
+
 ### First deliverable: software simulation for Duet/RRF
 
 The first runnable motion target is a three-actuator-bed simulation, independent
