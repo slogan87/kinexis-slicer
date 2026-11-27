@@ -88,3 +88,15 @@ their box limits and component speeds are bounded by those endpoints and the
 chosen duration. The scheduler lengthens each segment for XYZ/actuator/E speed
 limits, with a 1% timing margin. Acceleration, jerk, compliance and firmware
 synchronization remain unmodeled. The final full simulator replay is mandatory.
+
+## Variable-spacing transitions
+
+See [TRANSITION_MODEL.md](TRANSITION_MODEL.md) for the schedule and spacing
+footprint bound. At fixed layer fraction beta, scale curvature derivatives by
+beta. For planar path length L, gradient G, direction v and variable gap g,
+the volume density is w*g*sqrt(L²+(G dot v)²)/sqrt(1+|G|²). The midpoint
+error bound adds the gap derivative term:
+
+`w*(delta_beta*full_gradient*L²*sqrt(2) + gap_max*L*gradient_change*(1+sqrt(2)))/4`.
+
+The existing constant-gap expression is recovered when delta_beta=0.

@@ -15,12 +15,9 @@ double square(double n) {return n*n;}
 double slope(double n) {return std::tan(n*pi/180);}
 bool close(double a,double b) {return std::abs(a-b)<=epsilon;}
 bool same_pose(Pose a,Pose b) {return close(a.lift,b.lift) && close(a.pitch,b.pitch) && close(a.roll,b.roll);}
-double height(const CouponConfig& c,double x,double y) {return c.curvature_x*x*x+c.curvature_y*y*y;}
 double min_z(const CouponConfig& c,const Sample& a,const Sample& b,bool deposition) {
     if(!deposition) return std::min(a.tip[2],b.tip[2]);
-    auto nearest=[](double x,double y) {return x*y<=0?0:std::min(std::abs(x),std::abs(y));};
-    return b.tip[2]-height(c,b.tip[0],b.tip[1])+c.curvature_x*square(nearest(a.tip[0],b.tip[0]))+
-           c.curvature_y*square(nearest(a.tip[1],b.tip[1]));
+    return coupon_minimum_z(c,a,b);
 }
 bool overlap(const Bounds& a,const Bounds& b) {
     for(size_t j=0;j<3;++j) if(a.maximum[j]<b.minimum[j] || b.maximum[j]<a.minimum[j]) return false;
@@ -44,19 +41,20 @@ MaterialResult check_material(const CouponConfig& c,const CouponResult& motion,d
     auto spend=[&] {need(result.work<budget,"material work budget exhausted"); ++result.work;};
     std::vector<Cell> history;
     std::vector<size_t> seen;
-    std::map<std::pair<int,int>,std::vector<size_t>> grid;
-    const double bin_size=std::max({1.0,c.bead_width,2*radius});
+    std::map<std::array<int,3>,std::vector<size_t>> grid;
+    const double bin_size=std::max({0.5,c.bead_width,2*radius});
     need(std::isfinite(bin_size),"material index scale overflow");
     auto bins=[&](const Bounds& box,const auto& visit) {
         finite(box);
-        int lo[2],hi[2];
-        for(size_t j=0;j<2;++j) {
+        int lo[3],hi[3]; long long cells=1;
+        for(size_t j=0;j<3;++j) {
             double a=std::floor(box.minimum[j]/bin_size),b=std::floor(box.maximum[j]/bin_size);
             need(std::isfinite(a) && std::isfinite(b) && a>=-1000000 && b<=1000000,"material index range exhausted");
             lo[j]=static_cast<int>(a); hi[j]=static_cast<int>(b);
+            cells*=hi[j]-lo[j]+1; need(cells<=4096,"material index query too large");
         }
-        need(static_cast<long long>(hi[0]-lo[0]+1)*(hi[1]-lo[1]+1)<=4096,"material index query too large");
-        for(int x=lo[0];x<=hi[0];++x) for(int y=lo[1];y<=hi[1];++y) {spend(); visit(std::make_pair(x,y));}
+        for(int x=lo[0];x<=hi[0];++x) for(int y=lo[1];y<=hi[1];++y) for(int z=lo[2];z<=hi[2];++z)
+            {spend(); visit(std::array<int,3>{x,y,z});}
     };
     bool in_track=false,departure=false;
     size_t track=0,last_track=0;
@@ -78,17 +76,19 @@ MaterialResult check_material(const CouponConfig& c,const CouponResult& motion,d
         double de=b.extrusion-a.extrusion;
         need(std::isfinite(length) && std::isfinite(de),where+"non-finite material motion");
         bool stationary=close(dx,0) && close(dy,0) && close(a.tip[2],b.tip[2]) && same_pose(a.pose,b.pose);
+        int layer_id=deposit?coupon_layer(c,b):0;
+        double fraction=coupon_fraction(c,layer_id);
+        double gap_max=deposit?std::max(coupon_spacing(c,layer_id,a.tip[0],a.tip[1]),
+                                      coupon_spacing(c,layer_id,b.tip[0],b.tip[1])):0;
         if(deposit) {
             need(de>0 && length>0 && debt<=epsilon,where+"deposition requires recovered E and nonzero XY motion");
-            double layer=a.tip[2]-height(c,a.tip[0],a.tip[1])-c.substrate_thickness;
-            double layer_index=layer/c.layer_height;
-            need(std::isfinite(layer_index) && layer_index>=1-epsilon && layer_index<=c.layers+epsilon &&
-                 close(layer_index,std::round(layer_index)) &&
-                 close(b.tip[2]-height(c,b.tip[0],b.tip[1])-c.substrate_thickness,layer),
+            double layer=layer_id*c.layer_height;
+            need(close(a.tip[2],coupon_surface(c,layer_id,a.tip[0],a.tip[1])) &&
+                 close(b.tip[2],coupon_surface(c,layer_id,b.tip[0],b.tip[1])),
                  where+"deposition leaves the configured curved layer");
             for(const auto* s:{&a,&b}) {
-                need(close(slope(s->pose.pitch),-2*c.curvature_x*s->tip[0]) &&
-                     close(slope(s->pose.roll),-2*c.curvature_y*s->tip[1]) && close(s->pose.lift,c.bed_lift),
+                need(close(slope(s->pose.pitch),-2*fraction*c.curvature_x*s->tip[0]) &&
+                     close(slope(s->pose.roll),-2*fraction*c.curvature_y*s->tip[1]) && close(s->pose.lift,c.bed_lift),
                      where+"deposition pose does not match the surface normal");
             }
             if(!in_track) {
@@ -98,10 +98,15 @@ MaterialResult check_material(const CouponConfig& c,const CouponResult& motion,d
                      std::abs(dx*direction[1]-dy*direction[0])<=epsilon,
                      where+"track reversal/turn or layer change is unsupported");
             }
-            double gx=c.curvature_x*(a.tip[0]+b.tip[0]),gy=c.curvature_y*(a.tip[1]+b.tip[1]);
-            double estimate=c.bead_width*c.layer_height*std::hypot(length,gx*dx+gy*dy)/std::sqrt(1+gx*gx+gy*gy);
-            double grad_delta=std::hypot(2*c.curvature_x*dx,2*c.curvature_y*dy);
-            double uncertainty=c.bead_width*c.layer_height*length*grad_delta*(1+std::sqrt(2.0))/4;
+            double gx=fraction*c.curvature_x*(a.tip[0]+b.tip[0]),gy=fraction*c.curvature_y*(a.tip[1]+b.tip[1]);
+            double midpoint_gap=coupon_spacing(c,layer_id,(a.tip[0]+b.tip[0])/2,(a.tip[1]+b.tip[1])/2);
+            double estimate=c.bead_width*midpoint_gap*std::hypot(length,gx*dx+gy*dy)/std::sqrt(1+gx*gx+gy*gy);
+            double grad_delta=fraction*std::hypot(2*c.curvature_x*dx,2*c.curvature_y*dy);
+            double full_gradient=std::max(std::hypot(2*c.curvature_x*a.tip[0],2*c.curvature_y*a.tip[1]),
+                                          std::hypot(2*c.curvature_x*b.tip[0],2*c.curvature_y*b.tip[1]));
+            double delta_fraction=fraction-coupon_fraction(c,layer_id-1);
+            double uncertainty=c.bead_width*(delta_fraction*full_gradient*length*length*std::sqrt(2.0)+
+                gap_max*length*grad_delta*(1+std::sqrt(2.0)))/4;
             double volume=de*pi*square(c.filament_diameter)/4;
             need(std::isfinite(volume) && std::isfinite(uncertainty) &&
                  std::abs(volume-estimate)<=uncertainty+1e-9*std::max(1.0,estimate),where+"E disagrees with bead envelope");
@@ -143,16 +148,16 @@ MaterialResult check_material(const CouponConfig& c,const CouponResult& motion,d
                                         std::to_string(old.track)+", interval "+std::to_string(old.interval)+")");
         }
         if(deposit) {
-            double gs=std::max(std::hypot(2*c.curvature_x*a.tip[0],2*c.curvature_y*a.tip[1]),
-                               std::hypot(2*c.curvature_x*b.tip[0],2*c.curvature_y*b.tip[1]));
+            double gs=fraction*std::max(std::hypot(2*c.curvature_x*a.tip[0],2*c.curvature_y*a.tip[1]),
+                                        std::hypot(2*c.curvature_x*b.tip[0],2*c.curvature_y*b.tip[1]));
             need(std::isfinite(gs) && gs<=1+epsilon,where+"bead leaves supported gradient domain");
-            double pad=c.bead_width/2+c.layer_height*gs+error;
+            double pad=c.bead_width/2+gap_max*gs+error;
             Bounds bead;
             for(size_t j=0;j<2;++j) {
                 bead.minimum[j]=std::min(a.tip[j],b.tip[j])-pad;
                 bead.maximum[j]=std::max(a.tip[j],b.tip[j])+pad;
             }
-            bead.minimum[2]=min_z(c,a,b,true)-c.layer_height-c.bead_width*gs/2-error;
+            bead.minimum[2]=min_z(c,a,b,true)-gap_max-c.bead_width*gs/2-error;
             bead.maximum[2]=std::max(a.tip[2],b.tip[2])+c.bead_width*gs/2+error;
             finite(bead);
             need(history.size()<100000,"material history size exhausted");

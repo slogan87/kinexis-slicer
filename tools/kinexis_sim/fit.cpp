@@ -17,7 +17,7 @@ struct Rect {double xmin,xmax,ymin,ymax;};
 struct Bead {Vec3 a,b; double height,low_width,high_width,length; Rect box;};
 bool overlap(Rect a,Rect b) {return a.xmin<=b.xmax && b.xmin<=a.xmax && a.ymin<=b.ymax && b.ymin<=a.ymax;}
 double sq(double x) {return x*x;}
-double height(const CouponConfig& c,double x,double y) {return c.substrate_thickness+c.curvature_x*x*x+c.curvature_y*y*y;}
+double height(const CouponConfig& c,double x,double y) {return coupon_surface(c,1,x,y)-c.layer_height;}
 double nearest(double lo,double hi) {return lo<=0 && hi>=0?0:std::min(std::abs(lo),std::abs(hi));}
 double number(const std::string& token) {
     need(!token.empty(),"missing extrusion width/height annotation");
@@ -138,7 +138,7 @@ FitResult check_substrate_fit(const CouponConfig& c,const CouponResult& motion,c
     for(size_t i=1;i<motion.frames.size();++i) {
         const auto& a=motion.frames[i-1].source; const auto& b=motion.frames[i].source;
         double layer=b.tip[2]-height(c,b.tip[0],b.tip[1]);
-        bool first=b.kind=="extrusion" && std::abs(layer-c.layer_height)<1e-8;
+        bool first=b.kind=="extrusion" && (b.layer==1 || (b.layer==0 && std::abs(layer-c.layer_height)<1e-8));
         if(first) {
             if(!run) regions.push_back({std::min(a.tip[0],b.tip[0]),std::max(a.tip[0],b.tip[0]),
                                       std::min(a.tip[1],b.tip[1]),std::max(a.tip[1],b.tip[1])});
@@ -149,12 +149,13 @@ FitResult check_substrate_fit(const CouponConfig& c,const CouponResult& motion,c
         run=first;
     }
     need(!regions.empty(),"no first curved layer found"); result.regions=regions.size();
-    double gradient=std::hypot(2*c.curvature_x*std::max(std::abs(c.x_min),std::abs(c.x_max)),
+    double first_fraction=coupon_fraction(c,1);
+    double gradient=first_fraction*std::hypot(2*c.curvature_x*std::max(std::abs(c.x_min),std::abs(c.x_max)),
                                2*c.curvature_y*std::max(std::abs(c.y_min),std::abs(c.y_max)));
     double padding=c.bead_width/2+c.layer_height*gradient+error;
     // Include the local-tangent versus quadratic-height residual across the
     // conservative first-layer footprint, in addition to controller chord error.
-    double target_error=error+std::max(c.curvature_x,c.curvature_y)*padding*padding;
+    double target_error=error+first_fraction*std::max(c.curvature_x,c.curvature_y)*padding*padding;
     std::function<void(Rect,const std::vector<size_t>&,int)> evaluate;
     evaluate=[&](Rect local,const std::vector<size_t>& parent,int depth) {
         spend();

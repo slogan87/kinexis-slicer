@@ -65,8 +65,10 @@ The interval box is checked against the bed plane and bed-fixed boxes. Its
 intersection with the substrate footprint gives a conservative upper surface
 height for the convex quadratic. No tool sphere can reach that surface when
 the box's lower Z exceeds it. Capsule bodies are also checked against an
-overestimate of the complete rectangular-bead coupon envelope, including future
-layers, bead-width/slope allowance and trajectory error. The tip disk is checked
+overestimate of the rectangular-bead coupon envelope through the highest layer
+printed so far (including incoming deposition), with bead-width/slope allowance
+and trajectory error. Positive spacing and monotone curvature make these
+surfaces nested. The substrate margin also includes normal-depth displacement. The tip disk is checked
 against the substrate and fixtures, then against chronological bounded bead
 cells. [MATERIAL_MODEL.md](MATERIAL_MODEL.md) defines its narrow fresh-track and
 lift-off contact exceptions. Arbitrary infill joins and actual bead physics

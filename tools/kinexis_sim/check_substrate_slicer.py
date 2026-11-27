@@ -15,6 +15,9 @@ with tempfile.TemporaryDirectory(prefix="kinexis-substrate-") as folder:
         ("flat", "flat-interface-coupon.cfg", True,
          ["--top-fill-pattern", "rectilinear", "--fill-angle", "0", "--seam-position", "rear",
           "--top-infill-extrusion-width", "0.45"]),
+        ("transition", "transition-coupon.cfg", True,
+         ["--top-fill-pattern", "rectilinear", "--fill-angle", "0", "--seam-position", "rear",
+          "--top-infill-extrusion-width", "0.45"]),
     ):
         mesh = folder / (name + ".stl")
         source = folder / (name + ".gcode")

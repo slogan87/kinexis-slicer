@@ -82,10 +82,10 @@ Real sliced cases and hashes are recorded in `fixtures/substrate-fit-cases.json`
   modeled gap bounds about 0.195–0.221 mm. This is a different interface, not
   approval of the original curved coupon on that base.
 
-The supported next strategy is to develop a planar first layer followed by a
-gradual transition to the desired curvature, then revalidate layer spacing,
-deposition, motion and collisions for the whole transition. That transition is
-not implemented by this assessment. Alternatively, a prepared curved substrate
+A planar first layer followed by a bounded gradual transition is now implemented
+in the separate sparse-coupon generator. See [TRANSITION_MODEL.md](TRANSITION_MODEL.md)
+for the schedule, spacing, dose and whole-trajectory checks. This assessor checks
+its manufactured first interface; it does not validate the complete job. Alternatively, a prepared curved substrate
 would need independently established surface bounds and registration; an STL
 or successful slice is insufficient evidence.
 

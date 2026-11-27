@@ -10,7 +10,8 @@ int main(int argc,char** argv) {
         if(argc!=3 && (argc!=5 || std::string(argv[3])!="--csv"))
             throw std::invalid_argument("usage: kinexis-coupon MACHINE CONFIG [--csv NEW_FILE]");
         auto machine=kinexis::read_machine(argv[1]);
-        auto result=kinexis::make_coupon(machine,kinexis::read_coupon(argv[2]));
+        auto config=kinexis::read_coupon(argv[2]);
+        auto result=kinexis::make_coupon(machine,config);
         if(argc==5) {
             std::filesystem::path path=argv[4];
             if(std::filesystem::exists(path)) throw std::invalid_argument("coupon CSV must be a new file");
@@ -18,7 +19,7 @@ int main(int argc,char** argv) {
             if(!out) throw std::runtime_error("cannot create coupon CSV");
             out<<std::setprecision(17)<<"time,kind,x,y,z,e,lift,pitch,roll,world_x,world_y,world_z";
             for(const auto& axis:machine.actuators) out<<",axis_"<<axis.name;
-            out<<",position_bound\n";
+            out<<",position_bound,layer,surface_fraction\n";
             for(size_t i=0;i<result.frames.size();++i) {
                 const auto& f=result.frames[i]; const auto& s=f.source;
                 out<<s.time<<','<<s.kind;
@@ -26,7 +27,7 @@ int main(int argc,char** argv) {
                 out<<','<<s.extrusion<<','<<s.pose.lift<<','<<s.pose.pitch<<','<<s.pose.roll;
                 for(double n:f.tip) out<<','<<n;
                 for(double n:f.actuators) out<<','<<n;
-                out<<','<<result.position_bounds[i]<<'\n';
+                out<<','<<result.position_bounds[i]<<','<<s.layer<<','<<kinexis::coupon_fraction(config,s.layer)<<'\n';
             }
             out.close();
             if(!out) {std::filesystem::remove(path); throw std::runtime_error("coupon CSV write failed");}
@@ -37,6 +38,8 @@ int main(int argc,char** argv) {
             <<",\"position_error_bound_mm\":"<<result.max_position_error_bound
             <<",\"alignment_error_bound_deg\":"<<result.max_alignment_error_bound_deg
             <<",\"travel_clearance_lower_bound_mm\":"<<result.travel_clearance_lower_bound
+            <<",\"planned_interlayer_gap_lower_mm\":"<<result.minimum_interlayer_gap
+            <<",\"planned_interlayer_gap_upper_mm\":"<<result.maximum_interlayer_gap
             <<",\"deposition_model\":\"local_tangent_rectangular\""
             <<",\"support_generated\":false,\"collision_checked\":false,\"printer_safe\":false}\n";
         return 0;

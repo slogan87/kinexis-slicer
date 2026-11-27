@@ -38,6 +38,10 @@ if(Python3_Interpreter_FOUND)
         ${CMAKE_CURRENT_SOURCE_DIR}/check_scene.py $<TARGET_FILE:kinexis-scene-check>)
     add_test(NAME substrate-surface-fit COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/check_fit.py $<TARGET_FILE:kinexis-substrate-fit>)
+    add_test(NAME planar-curved-transition COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/check_transition.py $<TARGET_FILE:kinexis-coupon>
+        $<TARGET_FILE:kinexis-scene-check> $<TARGET_FILE:kinexis-substrate-fit>)
+    set_tests_properties(planar-curved-transition PROPERTIES TIMEOUT 120)
     if(KINEXIS_SLICER_EXECUTABLE)
         add_test(NAME fresh-planar-export COMMAND ${Python3_EXECUTABLE}
             ${CMAKE_CURRENT_SOURCE_DIR}/check_slicer.py

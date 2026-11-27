@@ -12,9 +12,7 @@ namespace kinexis {
 namespace {
 constexpr double pi=3.14159265358979323846;
 void need(bool ok,const std::string& message) {if(!ok) throw std::invalid_argument(message);}
-double sq(double n) {return n*n;}
 double slope(double a) {return std::tan(a*pi/180);}
-double nearest_zero(double a,double b) {return a<=0 && b>=0?0:std::min(std::abs(a),std::abs(b));}
 bool overlap(const Box& a,const Box& b) {
     for(size_t i=0;i<3;++i) if(a.maximum[i]<b.minimum[i] || b.maximum[i]<a.minimum[i]) return false;
     return true;
@@ -72,7 +70,7 @@ Mesh make_substrate(const CouponConfig& c,const Scene& s) {
     auto index=[&](int i,int j,int top) {return static_cast<size_t>(top*(nx+1)*(ny+1)+j*(nx+1)+i);};
     for(int top=0;top<=1;++top) for(int j=0;j<=ny;++j) for(int i=0;i<=nx;++i) {
         double x=xmin+(xmax-xmin)*i/nx,y=ymin+(ymax-ymin)*j/ny;
-        double z=top?c.substrate_thickness+c.curvature_x*x*x+c.curvature_y*y*y:0;
+        double z=top?coupon_surface(c,0,x,y):0;
         need(std::isfinite(z) && z>=0,"invalid substrate geometry");
         mesh.vertices.push_back({x,y,z});
     }
@@ -127,22 +125,26 @@ SceneResult check_scene(const Machine& machine,const CouponConfig& c,const Coupo
     need(c.substrate_thickness>0,"scene check requires positive matched substrate thickness");
     need(!motion.frames.empty() && motion.frames.size()==motion.samples.size() &&
          motion.frames.size()==motion.position_bounds.size(),"invalid coupon motion");
-    need(s.substrate_margin>c.bead_width/2+motion.max_position_error_bound,
-         "substrate margin does not cover the deposition footprint");
     SceneResult result{make_substrate(c,s),0,motion.frames.size(),{}};
     double dx=(c.x_max-c.x_min+2*s.substrate_margin)/s.grid_x;
     double dy=(c.y_max-c.y_min+2*s.substrate_margin)/s.grid_y;
-    result.substrate_error_bound=(c.curvature_x*dx*dx+c.curvature_y*dy*dy)/4;
+    result.substrate_error_bound=coupon_fraction(c,0)*(c.curvature_x*dx*dx+c.curvature_y*dy*dy)/4;
     need(std::isfinite(result.substrate_error_bound),"substrate error overflow");
     double surface_slope=std::hypot(2*c.curvature_x*std::max(std::abs(c.x_min),std::abs(c.x_max)),
                                     2*c.curvature_y*std::max(std::abs(c.y_min),std::abs(c.y_max)));
+    double maximum_depth=coupon_spacing(c,c.transition_layers?2:1,
+        std::max(std::abs(c.x_min),std::abs(c.x_max)),std::max(std::abs(c.y_min),std::abs(c.y_max)));
+    need(s.substrate_margin>c.bead_width/2+maximum_depth*surface_slope+motion.max_position_error_bound,
+         "substrate margin does not cover the deposition footprint");
     double printed_padding=c.bead_width*(surface_slope+2*std::max(c.curvature_x,c.curvature_y)*motion.max_position_error_bound)+
                            motion.max_position_error_bound*(1+surface_slope);
     Box footprint{"substrate",{c.x_min-s.substrate_margin,c.y_min-s.substrate_margin,0},
                              {c.x_max+s.substrate_margin,c.y_max+s.substrate_margin,0}};
+    int printed_layer=0;
     for(size_t i=0;i<motion.frames.size();++i) {
         const auto& a=motion.frames[i?i-1:0]; const auto& b=motion.frames[i];
         const auto& p=a.source; const auto& q=b.source;
+        if(q.kind=="extrusion") printed_layer=std::max(printed_layer,coupon_layer(c,q));
         double error=motion.position_bounds[i];
         double sx=std::max(std::abs(slope(p.pose.pitch)),std::abs(slope(q.pose.pitch)));
         double sy=std::max(std::abs(slope(p.pose.roll)),std::abs(slope(q.pose.roll)));
@@ -150,11 +152,7 @@ SceneResult check_scene(const Machine& machine,const CouponConfig& c,const Coupo
                            std::hypot(slope(q.pose.pitch),slope(q.pose.roll)));
         double cosine=1/std::sqrt(1+sn*sn);
         double minz=std::min(p.tip[2],q.tip[2]);
-        if(q.kind=="extrusion") {
-            double layer=q.tip[2]-c.curvature_x*q.tip[0]*q.tip[0]-c.curvature_y*q.tip[1]*q.tip[1];
-            minz=layer+c.curvature_x*sq(nearest_zero(std::min(p.tip[0],q.tip[0]),std::max(p.tip[0],q.tip[0])))+
-                       c.curvature_y*sq(nearest_zero(std::min(p.tip[1],q.tip[1]),std::max(p.tip[1],q.tip[1])));
-        }
+        if(q.kind=="extrusion") minz=coupon_minimum_z(c,p,q);
         auto local_box=[&](double radius,double bottom,double top,bool disk) {
             double r=radius+s.clearance_margin;
             Box bound{"tool",{}, {}};
@@ -180,8 +178,8 @@ SceneResult check_scene(const Machine& machine,const CouponConfig& c,const Coupo
                                   std::abs(std::min(local.maximum[0],footprint.maximum[0])));
                 double y=std::max(std::abs(std::max(local.minimum[1],footprint.minimum[1])),
                                   std::abs(std::min(local.maximum[1],footprint.maximum[1])));
-                double ceiling=c.substrate_thickness+c.curvature_x*x*x+c.curvature_y*y*y+
-                    (disk?result.substrate_error_bound:c.layers*c.layer_height+printed_padding);
+                double ceiling=disk?coupon_surface(c,0,x,y)+result.substrate_error_bound:
+                    coupon_surface(c,printed_layer,x,y)+printed_padding;
                 need(local.minimum[2]>ceiling,where+"substrate/material envelope clearance not established");
             }
             for(auto box:s.world_boxes) {
@@ -196,7 +194,7 @@ SceneResult check_scene(const Machine& machine,const CouponConfig& c,const Coupo
         check("tip_disk",s.tip_radius,0,0,true);
         for(const auto& capsule:s.capsules) check(capsule.name,capsule.radius,capsule.bottom,capsule.top,false);
     }
-    result.material=check_material(c,motion,s.tip_radius,s.clearance_margin);
+    result.material=check_material(c,motion,s.tip_radius,s.clearance_margin,c.material_work_budget);
     return result;
 }
 std::string substrate_stl(const Mesh& mesh) {

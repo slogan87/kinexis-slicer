@@ -51,3 +51,15 @@ the curved coupon on the flat base; the next strategy requires implementing
 and checking a gradual transition from a planar first layer to the target
 curvature. Detailed assumptions and cases are in
 [`SURFACE_FIT.md`](../tools/kinexis_sim/SURFACE_FIT.md).
+
+## 2026-11-28: gradual transition software fixture
+
+Implemented a flat first layer progressing to full curvature over 24 sparse
+layers in `tools/kinexis_sim/fixtures/transition-coupon.cfg`. Variable-spacing
+extrusion and explicit layer metadata accompany the geometry. Conservative
+interlayer bounds are 0.177368–0.247342 mm within configured 0.15–0.25 mm.
+All eleven local test groups pass, including independent interpolation/dose
+checks, chronological material/scene preflight and a newly sliced flat-base
+first-interface assessment. See `tools/kinexis_sim/TRANSITION_MODEL.md` in the
+fork. This is a software fixture; general production slicing, firmware output
+and physical Duet/RRF commissioning remain open. Klipper stays last.

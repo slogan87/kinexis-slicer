@@ -10,7 +10,7 @@ collision engine. `printer_safe` remains false.
 Each deposition interval is checked against the **existing** material history.
 Its bead cell is added only after the interval passes. Future tracks are absent
 from this history; retraction does not remove previously deposited cells.
-An XY spatial index finds candidate cells, followed by full XYZ interval-box
+An XYZ spatial index finds candidate cells, followed by full XYZ interval-box
 overlap checks. The tool-tip disk is bounded across the entire interpolated
 interval using the coupon's position-error bound and the bed rotation, as in
 the static scene checker. It does not rely on endpoints alone.
@@ -83,3 +83,10 @@ floating-point bounding, not a formal interval-arithmetic implementation.
 Real bead shape, swelling, cooling, shrinkage, nozzle calibration, arbitrary
 meshes/contacts, substrate manufacture, gantry dynamics and firmware execution
 remain unvalidated. This implementation exports no nonzero-tilt printer code.
+
+For transitions, h in the envelope formulas is replaced by the maximum local
+vertical spacing on the segment; gradients use the current layer fraction.
+Explicit layer metadata is checked independently. The default material work
+budget is two million operations; the 24-layer fixture explicitly allows ten
+million. Exhaustion rejects rather than skipping candidates. See
+[TRANSITION_MODEL.md](TRANSITION_MODEL.md).

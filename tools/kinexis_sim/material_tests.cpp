@@ -27,6 +27,14 @@ int main() {
         check(stats.intervals_checked==actual.frames.size(),"not every interval checked");
         check(stats.permitted_contact_pairs>0,"intended fresh contact not exercised");
         reject([&]{check_material(c,actual,0.2,0.02,1);},"work budget");
+        auto transition=read_coupon(fixtures+"/transition-coupon.cfg");
+        auto changed=make_coupon(machine,transition);
+        size_t first=0;
+        while(changed.frames.at(first).source.kind!="extrusion") ++first;
+        changed.frames[first].source.layer=0;
+        reject([&]{check_material(transition,changed,0.2,0.02,transition.material_work_budget);},"explicit layer metadata");
+        changed.frames[first].source.layer=2;
+        reject([&]{check_material(transition,changed,0.2,0.02,transition.material_work_budget);},"configured curved layer");
         c.curvature_x=c.curvature_y=0; c.bed_lift=0;
         double e_per_mm=c.bead_width*c.layer_height/(3.14159265358979323846*c.filament_diameter*c.filament_diameter/4);
         std::vector<Sample> path;

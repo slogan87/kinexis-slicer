@@ -255,3 +255,11 @@ This supports developing a planar first layer and gradual curvature transition;
 it does not validate a complete curved job or real hardware. Real sliced
 passing/rejected cases are included in regression tests, with optional fresh
 generation from the built PrusaSlicer CLI.
+
+## Gradual transition fixture
+
+The planar-to-curved sparse coupon is implemented and checked in software.
+See [TRANSITION_MODEL.md](TRANSITION_MODEL.md) for its 24-layer schedule,
+variable extrusion, spacing limits, results and remaining physical gates.
+This extends the flat interface control; general PrusaSlicer integration and
+nonzero-tilt firmware export remain open.

@@ -110,6 +110,7 @@ class SceneTests(unittest.TestCase):
         self.reject(coupon=(FIXTURES / "heightmap-coupon.cfg").read_text(), message="substrate thickness")
         self.reject(scene=self.scene.replace("bed_bounds -150 150 -150 150", "bed_bounds -5 5 -5 5"), message="outside bed")
         self.reject(scene=self.scene.replace("substrate_margin 2", "substrate_margin 0.1"), message="footprint")
+        self.reject(scene=self.scene.replace("substrate_margin 2", "substrate_margin 0.22"), message="footprint")
 
     def test_invalid_scene_fails_without_geometry_output(self):
         for old, new in (("substrate_grid 40 24", "substrate_grid 0 24"),

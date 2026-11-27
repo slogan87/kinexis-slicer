@@ -24,6 +24,7 @@ struct Sample {
     Vec3 tip;
     double extrusion;
     Pose pose;
+    int layer=0;
 };
 struct Frame { Sample source; Vec3 tip; Vec3 actuators; Pose reconstructed; };
 void validate(const Machine& machine);
